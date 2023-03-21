@@ -122,7 +122,7 @@ sgemm_micro_kernel(int kc,
                    float beta,
                    float *C, int incRowC, int incColC)
 {
-    float AB[MR*NR] __attribute__ ((aligned (16)));
+    float AB[MR*NR];
 
     int i, j, l;
 
@@ -130,166 +130,257 @@ sgemm_micro_kernel(int kc,
     //  Compute AB = A*B
     //
 
-    float32x4_t tmp0, tmp1, tmp2, tmp3;
-    float32x4_t tmp4, tmp5, tmp6, tmp7;
+    // float32x4_t tmp0, tmp1, tmp2, tmp3;             // v0~3
+    // float32x4_t tmp4, tmp5, tmp6, tmp7;             // v4~7
 
-    float32x4_t ab0_00_11_22_33 = vdupq_n_f32(0);
-    float32x4_t ab0_01_10_23_32 = vdupq_n_f32(0);
-    float32x4_t ab0_03_12_21_30 = vdupq_n_f32(0);
-    float32x4_t ab0_02_13_20_31 = vdupq_n_f32(0);
+    // float32x4_t ab0_00_11_22_33 = vdupq_n_f32(0);   // v16
+    // float32x4_t ab0_01_10_23_32 = vdupq_n_f32(0);   // v17
+    // float32x4_t ab0_03_12_21_30 = vdupq_n_f32(0);   // v18
+    // float32x4_t ab0_02_13_20_31 = vdupq_n_f32(0);   // v19
     
-    float32x4_t ab1_00_11_22_33 = vdupq_n_f32(0);
-    float32x4_t ab1_01_10_23_32 = vdupq_n_f32(0);
-    float32x4_t ab1_03_12_21_30 = vdupq_n_f32(0);
-    float32x4_t ab1_02_13_20_31 = vdupq_n_f32(0);
+    // float32x4_t ab1_00_11_22_33 = vdupq_n_f32(0);   // v20
+    // float32x4_t ab1_01_10_23_32 = vdupq_n_f32(0);   // v21
+    // float32x4_t ab1_03_12_21_30 = vdupq_n_f32(0);   // v22
+    // float32x4_t ab1_02_13_20_31 = vdupq_n_f32(0);   // v23
 
-    float32x4_t ab2_00_11_22_33 = vdupq_n_f32(0);
-    float32x4_t ab2_01_10_23_32 = vdupq_n_f32(0);
-    float32x4_t ab2_03_12_21_30 = vdupq_n_f32(0);
-    float32x4_t ab2_02_13_20_31 = vdupq_n_f32(0);
+    // float32x4_t ab2_00_11_22_33 = vdupq_n_f32(0);   // v24
+    // float32x4_t ab2_01_10_23_32 = vdupq_n_f32(0);   // v25
+    // float32x4_t ab2_03_12_21_30 = vdupq_n_f32(0);   // v26
+    // float32x4_t ab2_02_13_20_31 = vdupq_n_f32(0);   // v27
 
-    float32x4_t ab3_00_11_22_33 = vdupq_n_f32(0);
-    float32x4_t ab3_01_10_23_32 = vdupq_n_f32(0);
-    float32x4_t ab3_03_12_21_30 = vdupq_n_f32(0);
-    float32x4_t ab3_02_13_20_31 = vdupq_n_f32(0);
+    // float32x4_t ab3_00_11_22_33 = vdupq_n_f32(0);   // v28
+    // float32x4_t ab3_01_10_23_32 = vdupq_n_f32(0);   // v29
+    // float32x4_t ab3_03_12_21_30 = vdupq_n_f32(0);   // v30
+    // float32x4_t ab3_02_13_20_31 = vdupq_n_f32(0);   // v31
+
+    __asm__ volatile (
+        "dup v16.4S, wzr\n\t"
+        "dup v17.4S, wzr\n\t"
+        "dup v18.4S, wzr\n\t"
+        "dup v19.4S, wzr\n\t"
+        "dup v20.4S, wzr\n\t"
+        "dup v21.4S, wzr\n\t"
+        "dup v22.4S, wzr\n\t"
+        "dup v23.4S, wzr\n\t"
+        "dup v24.4S, wzr\n\t"
+        "dup v25.4S, wzr\n\t"
+        "dup v26.4S, wzr\n\t"
+        "dup v27.4S, wzr\n\t"
+        "dup v28.4S, wzr\n\t"
+        "dup v29.4S, wzr\n\t"
+        "dup v30.4S, wzr\n\t"
+        "dup v31.4S, wzr\n\t"
+    );
 
 
     for (l=0; l<kc; ++l) {
-        
-        tmp0 = vld1q_f32(A);
-        tmp1 = vld1q_f32(A+4);
-
-        tmp2 = vld1q_f32(B);
-        tmp3 = vld1q_f32(B+4);
-
-        ab0_00_11_22_33 = vfmaq_f32(tmp0, tmp2, ab0_00_11_22_33);
-        ab1_00_11_22_33 = vfmaq_f32(tmp1, tmp2, ab1_00_11_22_33);
-        ab2_00_11_22_33 = vfmaq_f32(tmp0, tmp3, ab2_00_11_22_33);
-        ab3_00_11_22_33 = vfmaq_f32(tmp1, tmp3, ab3_00_11_22_33);
-
-        tmp4 = vrev64q_f32(tmp2);
-        tmp5 = vrev64q_f32(tmp3);
-
-        ab0_01_10_23_32 = vfmaq_f32(tmp0, tmp4, ab0_01_10_23_32);
-        ab1_01_10_23_32 = vfmaq_f32(tmp1, tmp4, ab1_01_10_23_32);
-        ab2_01_10_23_32 = vfmaq_f32(tmp0, tmp5, ab2_01_10_23_32);
-        ab3_01_10_23_32 = vfmaq_f32(tmp1, tmp5, ab3_01_10_23_32);
-
-        tmp6 = vextq_f32(tmp4, tmp4, 2);
-        tmp7 = vextq_f32(tmp5, tmp5, 2);
-
-        ab0_03_12_21_30 = vfmaq_f32(tmp0, tmp6, ab0_03_12_21_30);
-        ab1_03_12_21_30 = vfmaq_f32(tmp1, tmp6, ab1_03_12_21_30);
-        ab2_03_12_21_30 = vfmaq_f32(tmp0, tmp7, ab2_03_12_21_30);
-        ab3_03_12_21_30 = vfmaq_f32(tmp1, tmp7, ab3_03_12_21_30);
-
-        tmp6 = vextq_f32(tmp2, tmp2, 2);
-        tmp7 = vextq_f32(tmp3, tmp3, 2);
-
-        ab0_02_13_20_31 = vfmaq_f32(tmp0, tmp6, ab0_02_13_20_31);
-        ab1_02_13_20_31 = vfmaq_f32(tmp1, tmp6, ab1_02_13_20_31);
-        ab2_02_13_20_31 = vfmaq_f32(tmp0, tmp7, ab2_02_13_20_31);
-        ab3_02_13_20_31 = vfmaq_f32(tmp1, tmp7, ab3_02_13_20_31);
-
-        A += 8;
-        B += 8;
+        int temp;
+        __asm__ volatile (
+            "ld1 {v0.4S, v1.4S}, [%0]\n\t"
+            "ld1 {v2.4S, v3.4S}, [%1]\n\t"
+            "fmla v16.4S, v0.4S, v2.4S\n\t"
+            "fmla v20.4S, v1.4S, v2.4S\n\t"
+            "fmla v24.4S, v0.4S, v3.4S\n\t"
+            "fmla v28.4S, v1.4S, v3.4S\n\t"
+            "rev64 v4.4S, v2.4S\n\t"
+            "rev64 v5.4S, v3.4S\n\t"
+            "fmla v17.4S, v0.4S, v4.4S\n\t"
+            "fmla v21.4S, v1.4S, v4.4S\n\t"
+            "fmla v25.4S, v0.4S, v5.4S\n\t"
+            "fmla v29.4S, v1.4S, v5.4S\n\t"
+            "ext v6.16B, v4.16B, v4.16B, #8\n\t"
+            "ext v7.16B, v5.16B, v5.16B, #8\n\t"
+            "fmla v18.4S, v0.4S, v6.4S\n\t"
+            "fmla v22.4S, v1.4S, v6.4S\n\t"
+            "fmla v26.4S, v0.4S, v7.4S\n\t"
+            "fmla v30.4S, v1.4S, v7.4S\n\t"
+            "ext v6.16B, v2.16B, v2.16B, #8\n\t"
+            "ext v7.16B, v3.16B, v3.16B, #8\n\t"
+            "fmla v19.4S, v0.4S, v6.4S\n\t"
+            "fmla v23.4S, v1.4S, v6.4S\n\t"
+            "fmla v27.4S, v0.4S, v7.4S\n\t"
+            "fmla v31.4S, v1.4S, v7.4S\n\t"
+            "add %0, %0, #32\n\t"
+            "add %1, %1, #32\n\t"
+            :"+r"(A), "+r"(B)
+        );
     }
 
     //
     // Save ab0
     //
 
-    vst1q_lane_f32(&AB[0+0*8], ab0_00_11_22_33, 0);
-    vst1q_lane_f32(&AB[1+1*8], ab0_00_11_22_33, 1);
-    vst1q_lane_f32(&AB[2+2*8], ab0_00_11_22_33, 2);
-    vst1q_lane_f32(&AB[3+3*8], ab0_00_11_22_33, 3);
+    __asm__ volatile ("st1 {v16.S}[0], [%0]\n\t"::"r"(&AB[0+0*8]));
+    __asm__ volatile ("st1 {v16.S}[1], [%0]\n\t"::"r"(&AB[1+1*8]));
+    __asm__ volatile ("st1 {v16.S}[2], [%0]\n\t"::"r"(&AB[2+2*8]));
+    __asm__ volatile ("st1 {v16.S}[3], [%0]\n\t"::"r"(&AB[3+3*8]));
 
-    vst1q_lane_f32(&AB[0+1*8], ab0_01_10_23_32, 0);
-    vst1q_lane_f32(&AB[1+0*8], ab0_01_10_23_32, 1);
-    vst1q_lane_f32(&AB[2+3*8], ab0_01_10_23_32, 2);
-    vst1q_lane_f32(&AB[3+2*8], ab0_01_10_23_32, 3);
+    __asm__ volatile ("st1 {v17.S}[0], [%0]\n\t"::"r"(&AB[0+1*8]));
+    __asm__ volatile ("st1 {v17.S}[1], [%0]\n\t"::"r"(&AB[1+0*8]));
+    __asm__ volatile ("st1 {v17.S}[2], [%0]\n\t"::"r"(&AB[2+3*8]));
+    __asm__ volatile ("st1 {v17.S}[3], [%0]\n\t"::"r"(&AB[3+2*8]));
+    
+    __asm__ volatile ("st1 {v18.S}[0], [%0]\n\t"::"r"(&AB[0+3*8]));
+    __asm__ volatile ("st1 {v18.S}[1], [%0]\n\t"::"r"(&AB[1+2*8]));
+    __asm__ volatile ("st1 {v18.S}[2], [%0]\n\t"::"r"(&AB[2+1*8]));
+    __asm__ volatile ("st1 {v18.S}[3], [%0]\n\t"::"r"(&AB[3+0*8]));
 
-    vst1q_lane_f32(&AB[0+3*8], ab0_03_12_21_30, 0);
-    vst1q_lane_f32(&AB[1+2*8], ab0_03_12_21_30, 1);
-    vst1q_lane_f32(&AB[2+1*8], ab0_03_12_21_30, 2);
-    vst1q_lane_f32(&AB[3+0*8], ab0_03_12_21_30, 3);
+    __asm__ volatile ("st1 {v19.S}[0], [%0]\n\t"::"r"(&AB[0+2*8]));
+    __asm__ volatile ("st1 {v19.S}[1], [%0]\n\t"::"r"(&AB[1+3*8]));
+    __asm__ volatile ("st1 {v19.S}[2], [%0]\n\t"::"r"(&AB[2+0*8]));
+    __asm__ volatile ("st1 {v19.S}[3], [%0]\n\t"::"r"(&AB[3+1*8]));
 
-    vst1q_lane_f32(&AB[0+2*8], ab0_02_13_20_31, 0);
-    vst1q_lane_f32(&AB[1+3*8], ab0_02_13_20_31, 1);
-    vst1q_lane_f32(&AB[2+0*8], ab0_02_13_20_31, 2);
-    vst1q_lane_f32(&AB[3+1*8], ab0_02_13_20_31, 3);
+    // vst1q_lane_f32(&AB[0+0*8], ab0_00_11_22_33, 0);
+    // vst1q_lane_f32(&AB[1+1*8], ab0_00_11_22_33, 1);
+    // vst1q_lane_f32(&AB[2+2*8], ab0_00_11_22_33, 2);
+    // vst1q_lane_f32(&AB[3+3*8], ab0_00_11_22_33, 3);
+
+    // vst1q_lane_f32(&AB[0+1*8], ab0_01_10_23_32, 0);
+    // vst1q_lane_f32(&AB[1+0*8], ab0_01_10_23_32, 1);
+    // vst1q_lane_f32(&AB[2+3*8], ab0_01_10_23_32, 2);
+    // vst1q_lane_f32(&AB[3+2*8], ab0_01_10_23_32, 3);
+
+    // vst1q_lane_f32(&AB[0+3*8], ab0_03_12_21_30, 0);
+    // vst1q_lane_f32(&AB[1+2*8], ab0_03_12_21_30, 1);
+    // vst1q_lane_f32(&AB[2+1*8], ab0_03_12_21_30, 2);
+    // vst1q_lane_f32(&AB[3+0*8], ab0_03_12_21_30, 3);
+
+    // vst1q_lane_f32(&AB[0+2*8], ab0_02_13_20_31, 0);
+    // vst1q_lane_f32(&AB[1+3*8], ab0_02_13_20_31, 1);
+    // vst1q_lane_f32(&AB[2+0*8], ab0_02_13_20_31, 2);
+    // vst1q_lane_f32(&AB[3+1*8], ab0_02_13_20_31, 3);
     
     //
     // Save ab1
     //
 
-    vst1q_lane_f32(&AB[4+0*8], ab1_00_11_22_33, 0);
-    vst1q_lane_f32(&AB[5+1*8], ab1_00_11_22_33, 1);
-    vst1q_lane_f32(&AB[6+2*8], ab1_00_11_22_33, 2);
-    vst1q_lane_f32(&AB[7+3*8], ab1_00_11_22_33, 3);
+    __asm__ volatile ("st1 {v20.S}[0], [%0]\n\t"::"r"(&AB[4+0*8]));
+    __asm__ volatile ("st1 {v20.S}[1], [%0]\n\t"::"r"(&AB[5+1*8]));
+    __asm__ volatile ("st1 {v20.S}[2], [%0]\n\t"::"r"(&AB[6+2*8]));
+    __asm__ volatile ("st1 {v20.S}[3], [%0]\n\t"::"r"(&AB[7+3*8]));
 
-    vst1q_lane_f32(&AB[4+1*8], ab1_01_10_23_32, 0);
-    vst1q_lane_f32(&AB[5+0*8], ab1_01_10_23_32, 1);
-    vst1q_lane_f32(&AB[6+3*8], ab1_01_10_23_32, 2);
-    vst1q_lane_f32(&AB[7+2*8], ab1_01_10_23_32, 3);
+    __asm__ volatile ("st1 {v21.S}[0], [%0]\n\t"::"r"(&AB[4+1*8]));
+    __asm__ volatile ("st1 {v21.S}[1], [%0]\n\t"::"r"(&AB[5+0*8]));
+    __asm__ volatile ("st1 {v21.S}[2], [%0]\n\t"::"r"(&AB[6+3*8]));
+    __asm__ volatile ("st1 {v21.S}[3], [%0]\n\t"::"r"(&AB[7+2*8]));
+    
+    __asm__ volatile ("st1 {v22.S}[0], [%0]\n\t"::"r"(&AB[4+3*8]));
+    __asm__ volatile ("st1 {v22.S}[1], [%0]\n\t"::"r"(&AB[5+2*8]));
+    __asm__ volatile ("st1 {v22.S}[2], [%0]\n\t"::"r"(&AB[6+1*8]));
+    __asm__ volatile ("st1 {v22.S}[3], [%0]\n\t"::"r"(&AB[7+0*8]));
 
-    vst1q_lane_f32(&AB[4+3*8], ab1_03_12_21_30, 0);
-    vst1q_lane_f32(&AB[5+2*8], ab1_03_12_21_30, 1);
-    vst1q_lane_f32(&AB[6+1*8], ab1_03_12_21_30, 2);
-    vst1q_lane_f32(&AB[7+0*8], ab1_03_12_21_30, 3);
+    __asm__ volatile ("st1 {v23.S}[0], [%0]\n\t"::"r"(&AB[4+2*8]));
+    __asm__ volatile ("st1 {v23.S}[1], [%0]\n\t"::"r"(&AB[5+3*8]));
+    __asm__ volatile ("st1 {v23.S}[2], [%0]\n\t"::"r"(&AB[6+0*8]));
+    __asm__ volatile ("st1 {v23.S}[3], [%0]\n\t"::"r"(&AB[7+1*8]));
 
-    vst1q_lane_f32(&AB[4+2*8], ab1_02_13_20_31, 0);
-    vst1q_lane_f32(&AB[5+3*8], ab1_02_13_20_31, 1);
-    vst1q_lane_f32(&AB[6+0*8], ab1_02_13_20_31, 2);
-    vst1q_lane_f32(&AB[7+1*8], ab1_02_13_20_31, 3);
+    // vst1q_lane_f32(&AB[4+0*8], ab1_00_11_22_33, 0);
+    // vst1q_lane_f32(&AB[5+1*8], ab1_00_11_22_33, 1);
+    // vst1q_lane_f32(&AB[6+2*8], ab1_00_11_22_33, 2);
+    // vst1q_lane_f32(&AB[7+3*8], ab1_00_11_22_33, 3);
+
+    // vst1q_lane_f32(&AB[4+1*8], ab1_01_10_23_32, 0);
+    // vst1q_lane_f32(&AB[5+0*8], ab1_01_10_23_32, 1);
+    // vst1q_lane_f32(&AB[6+3*8], ab1_01_10_23_32, 2);
+    // vst1q_lane_f32(&AB[7+2*8], ab1_01_10_23_32, 3);
+
+    // vst1q_lane_f32(&AB[4+3*8], ab1_03_12_21_30, 0);
+    // vst1q_lane_f32(&AB[5+2*8], ab1_03_12_21_30, 1);
+    // vst1q_lane_f32(&AB[6+1*8], ab1_03_12_21_30, 2);
+    // vst1q_lane_f32(&AB[7+0*8], ab1_03_12_21_30, 3);
+
+    // vst1q_lane_f32(&AB[4+2*8], ab1_02_13_20_31, 0);
+    // vst1q_lane_f32(&AB[5+3*8], ab1_02_13_20_31, 1);
+    // vst1q_lane_f32(&AB[6+0*8], ab1_02_13_20_31, 2);
+    // vst1q_lane_f32(&AB[7+1*8], ab1_02_13_20_31, 3);
     
     //
     // Save ab2
     //
 
-    vst1q_lane_f32(&AB[0+4*8], ab2_00_11_22_33, 0);
-    vst1q_lane_f32(&AB[1+5*8], ab2_00_11_22_33, 1);
-    vst1q_lane_f32(&AB[2+6*8], ab2_00_11_22_33, 2);
-    vst1q_lane_f32(&AB[3+7*8], ab2_00_11_22_33, 3);
+    __asm__ volatile ("st1 {v24.S}[0], [%0]\n\t"::"r"(&AB[0+4*8]));
+    __asm__ volatile ("st1 {v24.S}[1], [%0]\n\t"::"r"(&AB[1+5*8]));
+    __asm__ volatile ("st1 {v24.S}[2], [%0]\n\t"::"r"(&AB[2+6*8]));
+    __asm__ volatile ("st1 {v24.S}[3], [%0]\n\t"::"r"(&AB[3+7*8]));
 
-    vst1q_lane_f32(&AB[0+5*8], ab2_01_10_23_32, 0);
-    vst1q_lane_f32(&AB[1+4*8], ab2_01_10_23_32, 1);
-    vst1q_lane_f32(&AB[2+7*8], ab2_01_10_23_32, 2);
-    vst1q_lane_f32(&AB[3+6*8], ab2_01_10_23_32, 3);
+    __asm__ volatile ("st1 {v25.S}[0], [%0]\n\t"::"r"(&AB[0+5*8]));
+    __asm__ volatile ("st1 {v25.S}[1], [%0]\n\t"::"r"(&AB[1+4*8]));
+    __asm__ volatile ("st1 {v25.S}[2], [%0]\n\t"::"r"(&AB[2+7*8]));
+    __asm__ volatile ("st1 {v25.S}[3], [%0]\n\t"::"r"(&AB[3+6*8]));
+    
+    __asm__ volatile ("st1 {v26.S}[0], [%0]\n\t"::"r"(&AB[0+7*8]));
+    __asm__ volatile ("st1 {v26.S}[1], [%0]\n\t"::"r"(&AB[1+6*8]));
+    __asm__ volatile ("st1 {v26.S}[2], [%0]\n\t"::"r"(&AB[2+5*8]));
+    __asm__ volatile ("st1 {v26.S}[3], [%0]\n\t"::"r"(&AB[3+4*8]));
 
-    vst1q_lane_f32(&AB[0+7*8], ab2_03_12_21_30, 0);
-    vst1q_lane_f32(&AB[1+6*8], ab2_03_12_21_30, 1);
-    vst1q_lane_f32(&AB[2+5*8], ab2_03_12_21_30, 2);
-    vst1q_lane_f32(&AB[3+4*8], ab2_03_12_21_30, 3);
+    __asm__ volatile ("st1 {v27.S}[0], [%0]\n\t"::"r"(&AB[0+6*8]));
+    __asm__ volatile ("st1 {v27.S}[1], [%0]\n\t"::"r"(&AB[1+7*8]));
+    __asm__ volatile ("st1 {v27.S}[2], [%0]\n\t"::"r"(&AB[2+4*8]));
+    __asm__ volatile ("st1 {v27.S}[3], [%0]\n\t"::"r"(&AB[3+5*8]));
 
-    vst1q_lane_f32(&AB[0+6*8], ab2_02_13_20_31, 0);
-    vst1q_lane_f32(&AB[1+7*8], ab2_02_13_20_31, 1);
-    vst1q_lane_f32(&AB[2+4*8], ab2_02_13_20_31, 2);
-    vst1q_lane_f32(&AB[3+5*8], ab2_02_13_20_31, 3);
+    // vst1q_lane_f32(&AB[0+4*8], ab2_00_11_22_33, 0);
+    // vst1q_lane_f32(&AB[1+5*8], ab2_00_11_22_33, 1);
+    // vst1q_lane_f32(&AB[2+6*8], ab2_00_11_22_33, 2);
+    // vst1q_lane_f32(&AB[3+7*8], ab2_00_11_22_33, 3);
+
+    // vst1q_lane_f32(&AB[0+5*8], ab2_01_10_23_32, 0);
+    // vst1q_lane_f32(&AB[1+4*8], ab2_01_10_23_32, 1);
+    // vst1q_lane_f32(&AB[2+7*8], ab2_01_10_23_32, 2);
+    // vst1q_lane_f32(&AB[3+6*8], ab2_01_10_23_32, 3);
+
+    // vst1q_lane_f32(&AB[0+7*8], ab2_03_12_21_30, 0);
+    // vst1q_lane_f32(&AB[1+6*8], ab2_03_12_21_30, 1);
+    // vst1q_lane_f32(&AB[2+5*8], ab2_03_12_21_30, 2);
+    // vst1q_lane_f32(&AB[3+4*8], ab2_03_12_21_30, 3);
+
+    // vst1q_lane_f32(&AB[0+6*8], ab2_02_13_20_31, 0);
+    // vst1q_lane_f32(&AB[1+7*8], ab2_02_13_20_31, 1);
+    // vst1q_lane_f32(&AB[2+4*8], ab2_02_13_20_31, 2);
+    // vst1q_lane_f32(&AB[3+5*8], ab2_02_13_20_31, 3);
     
     //
     // Save ab3
     //
 
-    vst1q_lane_f32(&AB[4+4*8], ab3_00_11_22_33, 0);
-    vst1q_lane_f32(&AB[5+5*8], ab3_00_11_22_33, 1);
-    vst1q_lane_f32(&AB[6+6*8], ab3_00_11_22_33, 2);
-    vst1q_lane_f32(&AB[7+7*8], ab3_00_11_22_33, 3);
+    __asm__ volatile ("st1 {v28.S}[0], [%0]\n\t"::"r"(&AB[4+4*8]));
+    __asm__ volatile ("st1 {v28.S}[1], [%0]\n\t"::"r"(&AB[5+5*8]));
+    __asm__ volatile ("st1 {v28.S}[2], [%0]\n\t"::"r"(&AB[6+6*8]));
+    __asm__ volatile ("st1 {v28.S}[3], [%0]\n\t"::"r"(&AB[7+7*8]));
 
-    vst1q_lane_f32(&AB[4+5*8], ab3_01_10_23_32, 0);
-    vst1q_lane_f32(&AB[5+4*8], ab3_01_10_23_32, 1);
-    vst1q_lane_f32(&AB[6+7*8], ab3_01_10_23_32, 2);
-    vst1q_lane_f32(&AB[7+6*8], ab3_01_10_23_32, 3);
+    __asm__ volatile ("st1 {v29.S}[0], [%0]\n\t"::"r"(&AB[4+5*8]));
+    __asm__ volatile ("st1 {v29.S}[1], [%0]\n\t"::"r"(&AB[5+4*8]));
+    __asm__ volatile ("st1 {v29.S}[2], [%0]\n\t"::"r"(&AB[6+7*8]));
+    __asm__ volatile ("st1 {v29.S}[3], [%0]\n\t"::"r"(&AB[7+6*8]));
+    
+    __asm__ volatile ("st1 {v30.S}[0], [%0]\n\t"::"r"(&AB[4+7*8]));
+    __asm__ volatile ("st1 {v30.S}[1], [%0]\n\t"::"r"(&AB[5+6*8]));
+    __asm__ volatile ("st1 {v30.S}[2], [%0]\n\t"::"r"(&AB[6+5*8]));
+    __asm__ volatile ("st1 {v30.S}[3], [%0]\n\t"::"r"(&AB[7+4*8]));
 
-    vst1q_lane_f32(&AB[4+7*8], ab3_03_12_21_30, 0);
-    vst1q_lane_f32(&AB[5+6*8], ab3_03_12_21_30, 1);
-    vst1q_lane_f32(&AB[6+5*8], ab3_03_12_21_30, 2);
-    vst1q_lane_f32(&AB[7+4*8], ab3_03_12_21_30, 3);
+    __asm__ volatile ("st1 {v31.S}[0], [%0]\n\t"::"r"(&AB[4+6*8]));
+    __asm__ volatile ("st1 {v31.S}[1], [%0]\n\t"::"r"(&AB[5+7*8]));
+    __asm__ volatile ("st1 {v31.S}[2], [%0]\n\t"::"r"(&AB[6+4*8]));
+    __asm__ volatile ("st1 {v31.S}[3], [%0]\n\t"::"r"(&AB[7+5*8]));
 
-    vst1q_lane_f32(&AB[4+6*8], ab3_02_13_20_31, 0);
-    vst1q_lane_f32(&AB[5+7*8], ab3_02_13_20_31, 1);
-    vst1q_lane_f32(&AB[6+4*8], ab3_02_13_20_31, 2);
-    vst1q_lane_f32(&AB[7+5*8], ab3_02_13_20_31, 3);
+    // vst1q_lane_f32(&AB[4+4*8], ab3_00_11_22_33, 0);
+    // vst1q_lane_f32(&AB[5+5*8], ab3_00_11_22_33, 1);
+    // vst1q_lane_f32(&AB[6+6*8], ab3_00_11_22_33, 2);
+    // vst1q_lane_f32(&AB[7+7*8], ab3_00_11_22_33, 3);
+
+    // vst1q_lane_f32(&AB[4+5*8], ab3_01_10_23_32, 0);
+    // vst1q_lane_f32(&AB[5+4*8], ab3_01_10_23_32, 1);
+    // vst1q_lane_f32(&AB[6+7*8], ab3_01_10_23_32, 2);
+    // vst1q_lane_f32(&AB[7+6*8], ab3_01_10_23_32, 3);
+
+    // vst1q_lane_f32(&AB[4+7*8], ab3_03_12_21_30, 0);
+    // vst1q_lane_f32(&AB[5+6*8], ab3_03_12_21_30, 1);
+    // vst1q_lane_f32(&AB[6+5*8], ab3_03_12_21_30, 2);
+    // vst1q_lane_f32(&AB[7+4*8], ab3_03_12_21_30, 3);
+
+    // vst1q_lane_f32(&AB[4+6*8], ab3_02_13_20_31, 0);
+    // vst1q_lane_f32(&AB[5+7*8], ab3_02_13_20_31, 1);
+    // vst1q_lane_f32(&AB[6+4*8], ab3_02_13_20_31, 2);
+    // vst1q_lane_f32(&AB[7+5*8], ab3_02_13_20_31, 3);
 
 
 //
