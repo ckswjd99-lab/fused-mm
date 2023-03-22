@@ -1,12 +1,11 @@
 #include <stdio.h>
-#include <arm_neon.h>
 
-#define MC  32
-#define KC  64
-#define NC  512
+#define MC  128
+#define KC  128
+#define NC  840
 
-#define MR  (4*2)
-#define NR  (4*2)
+#define MR  (4*2)   // never change!
+#define NR  (4*2)   // never change!
 
 //
 //  Local buffers for storing panels from A, B and C
@@ -33,6 +32,26 @@ pack_MRxk(int k, const float *A, int incRowA, int incColA,
     }
 }
 
+
+//  Packing complete panels from A (i.e. without padding)
+//
+static void
+pack_MRxk_unroll(int k, const float *A, int incRowA, int incColA,
+          float *buffer)
+{
+    int i, j;
+
+    for (j=0; j<k; ++j) {
+        __asm__ volatile (
+            "ld1 {v0.4S, v1.4S}, [%0]\n\t"
+            "st1 {v0.4S, v1.4S}, [%1]\n\t"
+            "add %0, %0, #32\n\t"
+            "add %1, %1, %2\n\t"
+            ::"r"(buffer), "r"(A), "r"(incColA)
+        );
+    }
+}
+
 //
 //  Packing panels from A with padding if required
 //
@@ -45,10 +64,19 @@ pack_A(int mc, int kc, const float *A, int incRowA, int incColA,
 
     int i, j;
 
-    for (i=0; i<mp; ++i) {
-        pack_MRxk(kc, A, incRowA, incColA, buffer);
-        buffer += kc*MR;
-        A      += MR*incRowA;
+    if (incRowA == 1) {
+        for (i=0; i<mp; ++i) {
+            pack_MRxk_unroll(kc, A, incRowA, incColA, buffer);
+            buffer += kc*MR;
+            A      += MR*incRowA;
+        }
+    }
+    else {
+        for (i=0; i<mp; ++i) {
+            pack_MRxk(kc, A, incRowA, incColA, buffer);
+            buffer += kc*MR;
+            A      += MR*incRowA;
+        }
     }
     if (_mr>0) {
         for (j=0; j<kc; ++j) {
@@ -83,6 +111,69 @@ pack_kxNR(int k, const float *B, int incRowB, int incColB,
 }
 
 //
+//  Packing complete panels from B (i.e. without padding)
+//
+static void
+pack_kxNR_unroll(int k, const float *B, int incRowB, int incColB,
+          float *buffer)
+{
+    int i, j;
+
+    #define UNROLL_kxNR 8
+
+    int unroll_k = k / UNROLL_kxNR;
+    int unroll_left = k % UNROLL_kxNR;
+
+    for (i=0; i<unroll_k; i++) {
+        __asm__ volatile (
+            "ld1 {v0.4S}, [%0], %2\n\t"
+            "ld1 {v2.4S}, [%0], %2\n\t"
+            "ld1 {v4.4S}, [%0], %2\n\t"
+            "ld1 {v6.4S}, [%0], %2\n\t"
+            "ld1 {v1.4S}, [%0], %2\n\t"
+            "ld1 {v3.4S}, [%0], %2\n\t"
+            "ld1 {v5.4S}, [%0], %2\n\t"
+            "ld1 {v7.4S}, [%0], %2\n\t"
+            "trn1 v8.4S,  v0.4S, v2.4S\n\t"
+            "trn2 v9.4S,  v0.4S, v2.4S\n\t"
+            "trn1 v10.4S, v4.4S, v6.4S\n\t"
+            "trn2 v11.4S, v4.4S, v6.4S\n\t"
+            "mov v0.D[0], v8.D[0]\n\t"
+            "mov v0.D[1], v10.D[0]\n\t"
+            "mov v2.D[0], v9.D[0]\n\t"
+            "mov v2.D[1], v11.D[0]\n\t"
+            "mov v4.D[0], v8.D[1]\n\t"
+            "mov v4.D[1], v10.D[1]\n\t"
+            "mov v6.D[0], v9.D[1]\n\t"
+            "mov v6.D[1], v11.D[1]\n\t"
+            "trn1 v8.4S,  v1.4S, v3.4S\n\t"
+            "trn2 v9.4S,  v1.4S, v3.4S\n\t"
+            "trn1 v10.4S, v5.4S, v7.4S\n\t"
+            "trn2 v11.4S, v5.4S, v7.4S\n\t"
+            "mov v1.D[0], v8.D[0]\n\t"
+            "mov v1.D[1], v10.D[0]\n\t"
+            "mov v3.D[0], v9.D[0]\n\t"
+            "mov v3.D[1], v11.D[0]\n\t"
+            "mov v5.D[0], v8.D[1]\n\t"
+            "mov v5.D[1], v10.D[1]\n\t"
+            "mov v7.D[0], v9.D[1]\n\t"
+            "mov v7.D[1], v11.D[1]\n\t"
+            "st1 {v0.4S-v3.4S}, [%1], #64\n\t"
+            "st1 {v4.4S-v7.4S}, [%1], #64\n\t"
+            ::"r"(B), "r"(buffer), "r"(incColB)
+        );
+    }
+
+    for (i=0; i<unroll_left; ++i) {
+        for (j=0; j<NR; ++j) {
+            buffer[j] = B[j*incColB];
+        }
+        buffer += NR;
+        B      += incRowB;
+    }
+}
+
+//
 //  Packing panels from B with padding if required
 //
 static void
@@ -94,10 +185,19 @@ pack_B(int kc, int nc, const float *B, int incRowB, int incColB,
 
     int i, j;
 
-    for (j=0; j<np; ++j) {
-        pack_kxNR(kc, B, incRowB, incColB, buffer);
-        buffer += kc*NR;
-        B      += NR*incColB;
+    if (incRowB == 1) {
+        for (j=0; j<np; ++j) {
+            pack_kxNR_unroll(kc, B, incRowB, incColB, buffer);
+            buffer += kc*NR;
+            B      += NR*incColB;
+        }
+    }
+    else {
+        for (j=0; j<np; ++j) {
+            pack_kxNR(kc, B, incRowB, incColB, buffer);
+            buffer += kc*NR;
+            B      += NR*incColB;
+        }
     }
     if (_nr>0) {
         for (i=0; i<kc; ++i) {
@@ -207,196 +307,103 @@ sgemm_micro_kernel(int kc,
     }
 
     //
-    // Save ab0
+    // Save ab
     //
 
     __asm__ volatile ("st1 {v16.S}[0], [%0]\n\t"::"r"(&AB[0+0*8]));
-    __asm__ volatile ("st1 {v16.S}[1], [%0]\n\t"::"r"(&AB[1+1*8]));
-    __asm__ volatile ("st1 {v16.S}[2], [%0]\n\t"::"r"(&AB[2+2*8]));
-    __asm__ volatile ("st1 {v16.S}[3], [%0]\n\t"::"r"(&AB[3+3*8]));
-
-    __asm__ volatile ("st1 {v17.S}[0], [%0]\n\t"::"r"(&AB[0+1*8]));
     __asm__ volatile ("st1 {v17.S}[1], [%0]\n\t"::"r"(&AB[1+0*8]));
-    __asm__ volatile ("st1 {v17.S}[2], [%0]\n\t"::"r"(&AB[2+3*8]));
-    __asm__ volatile ("st1 {v17.S}[3], [%0]\n\t"::"r"(&AB[3+2*8]));
-    
-    __asm__ volatile ("st1 {v18.S}[0], [%0]\n\t"::"r"(&AB[0+3*8]));
-    __asm__ volatile ("st1 {v18.S}[1], [%0]\n\t"::"r"(&AB[1+2*8]));
-    __asm__ volatile ("st1 {v18.S}[2], [%0]\n\t"::"r"(&AB[2+1*8]));
-    __asm__ volatile ("st1 {v18.S}[3], [%0]\n\t"::"r"(&AB[3+0*8]));
-
-    __asm__ volatile ("st1 {v19.S}[0], [%0]\n\t"::"r"(&AB[0+2*8]));
-    __asm__ volatile ("st1 {v19.S}[1], [%0]\n\t"::"r"(&AB[1+3*8]));
     __asm__ volatile ("st1 {v19.S}[2], [%0]\n\t"::"r"(&AB[2+0*8]));
-    __asm__ volatile ("st1 {v19.S}[3], [%0]\n\t"::"r"(&AB[3+1*8]));
-
-    // vst1q_lane_f32(&AB[0+0*8], ab0_00_11_22_33, 0);
-    // vst1q_lane_f32(&AB[1+1*8], ab0_00_11_22_33, 1);
-    // vst1q_lane_f32(&AB[2+2*8], ab0_00_11_22_33, 2);
-    // vst1q_lane_f32(&AB[3+3*8], ab0_00_11_22_33, 3);
-
-    // vst1q_lane_f32(&AB[0+1*8], ab0_01_10_23_32, 0);
-    // vst1q_lane_f32(&AB[1+0*8], ab0_01_10_23_32, 1);
-    // vst1q_lane_f32(&AB[2+3*8], ab0_01_10_23_32, 2);
-    // vst1q_lane_f32(&AB[3+2*8], ab0_01_10_23_32, 3);
-
-    // vst1q_lane_f32(&AB[0+3*8], ab0_03_12_21_30, 0);
-    // vst1q_lane_f32(&AB[1+2*8], ab0_03_12_21_30, 1);
-    // vst1q_lane_f32(&AB[2+1*8], ab0_03_12_21_30, 2);
-    // vst1q_lane_f32(&AB[3+0*8], ab0_03_12_21_30, 3);
-
-    // vst1q_lane_f32(&AB[0+2*8], ab0_02_13_20_31, 0);
-    // vst1q_lane_f32(&AB[1+3*8], ab0_02_13_20_31, 1);
-    // vst1q_lane_f32(&AB[2+0*8], ab0_02_13_20_31, 2);
-    // vst1q_lane_f32(&AB[3+1*8], ab0_02_13_20_31, 3);
-    
-    //
-    // Save ab1
-    //
-
+    __asm__ volatile ("st1 {v18.S}[3], [%0]\n\t"::"r"(&AB[3+0*8]));
     __asm__ volatile ("st1 {v20.S}[0], [%0]\n\t"::"r"(&AB[4+0*8]));
-    __asm__ volatile ("st1 {v20.S}[1], [%0]\n\t"::"r"(&AB[5+1*8]));
-    __asm__ volatile ("st1 {v20.S}[2], [%0]\n\t"::"r"(&AB[6+2*8]));
-    __asm__ volatile ("st1 {v20.S}[3], [%0]\n\t"::"r"(&AB[7+3*8]));
-
-    __asm__ volatile ("st1 {v21.S}[0], [%0]\n\t"::"r"(&AB[4+1*8]));
     __asm__ volatile ("st1 {v21.S}[1], [%0]\n\t"::"r"(&AB[5+0*8]));
-    __asm__ volatile ("st1 {v21.S}[2], [%0]\n\t"::"r"(&AB[6+3*8]));
-    __asm__ volatile ("st1 {v21.S}[3], [%0]\n\t"::"r"(&AB[7+2*8]));
-    
-    __asm__ volatile ("st1 {v22.S}[0], [%0]\n\t"::"r"(&AB[4+3*8]));
-    __asm__ volatile ("st1 {v22.S}[1], [%0]\n\t"::"r"(&AB[5+2*8]));
-    __asm__ volatile ("st1 {v22.S}[2], [%0]\n\t"::"r"(&AB[6+1*8]));
+    __asm__ volatile ("st1 {v23.S}[2], [%0]\n\t"::"r"(&AB[6+0*8]));
     __asm__ volatile ("st1 {v22.S}[3], [%0]\n\t"::"r"(&AB[7+0*8]));
 
-    __asm__ volatile ("st1 {v23.S}[0], [%0]\n\t"::"r"(&AB[4+2*8]));
-    __asm__ volatile ("st1 {v23.S}[1], [%0]\n\t"::"r"(&AB[5+3*8]));
-    __asm__ volatile ("st1 {v23.S}[2], [%0]\n\t"::"r"(&AB[6+0*8]));
+    __asm__ volatile ("st1 {v17.S}[0], [%0]\n\t"::"r"(&AB[0+1*8]));
+    __asm__ volatile ("st1 {v16.S}[1], [%0]\n\t"::"r"(&AB[1+1*8]));
+    __asm__ volatile ("st1 {v18.S}[2], [%0]\n\t"::"r"(&AB[2+1*8]));
+    __asm__ volatile ("st1 {v19.S}[3], [%0]\n\t"::"r"(&AB[3+1*8]));
+    __asm__ volatile ("st1 {v21.S}[0], [%0]\n\t"::"r"(&AB[4+1*8]));
+    __asm__ volatile ("st1 {v20.S}[1], [%0]\n\t"::"r"(&AB[5+1*8]));
+    __asm__ volatile ("st1 {v22.S}[2], [%0]\n\t"::"r"(&AB[6+1*8]));
     __asm__ volatile ("st1 {v23.S}[3], [%0]\n\t"::"r"(&AB[7+1*8]));
 
-    // vst1q_lane_f32(&AB[4+0*8], ab1_00_11_22_33, 0);
-    // vst1q_lane_f32(&AB[5+1*8], ab1_00_11_22_33, 1);
-    // vst1q_lane_f32(&AB[6+2*8], ab1_00_11_22_33, 2);
-    // vst1q_lane_f32(&AB[7+3*8], ab1_00_11_22_33, 3);
+    __asm__ volatile ("st1 {v19.S}[0], [%0]\n\t"::"r"(&AB[0+2*8]));
+    __asm__ volatile ("st1 {v18.S}[1], [%0]\n\t"::"r"(&AB[1+2*8]));
+    __asm__ volatile ("st1 {v16.S}[2], [%0]\n\t"::"r"(&AB[2+2*8]));
+    __asm__ volatile ("st1 {v17.S}[3], [%0]\n\t"::"r"(&AB[3+2*8]));
+    __asm__ volatile ("st1 {v23.S}[0], [%0]\n\t"::"r"(&AB[4+2*8]));
+    __asm__ volatile ("st1 {v22.S}[1], [%0]\n\t"::"r"(&AB[5+2*8]));
+    __asm__ volatile ("st1 {v20.S}[2], [%0]\n\t"::"r"(&AB[6+2*8]));
+    __asm__ volatile ("st1 {v21.S}[3], [%0]\n\t"::"r"(&AB[7+2*8]));
 
-    // vst1q_lane_f32(&AB[4+1*8], ab1_01_10_23_32, 0);
-    // vst1q_lane_f32(&AB[5+0*8], ab1_01_10_23_32, 1);
-    // vst1q_lane_f32(&AB[6+3*8], ab1_01_10_23_32, 2);
-    // vst1q_lane_f32(&AB[7+2*8], ab1_01_10_23_32, 3);
-
-    // vst1q_lane_f32(&AB[4+3*8], ab1_03_12_21_30, 0);
-    // vst1q_lane_f32(&AB[5+2*8], ab1_03_12_21_30, 1);
-    // vst1q_lane_f32(&AB[6+1*8], ab1_03_12_21_30, 2);
-    // vst1q_lane_f32(&AB[7+0*8], ab1_03_12_21_30, 3);
-
-    // vst1q_lane_f32(&AB[4+2*8], ab1_02_13_20_31, 0);
-    // vst1q_lane_f32(&AB[5+3*8], ab1_02_13_20_31, 1);
-    // vst1q_lane_f32(&AB[6+0*8], ab1_02_13_20_31, 2);
-    // vst1q_lane_f32(&AB[7+1*8], ab1_02_13_20_31, 3);
-    
-    //
-    // Save ab2
-    //
+    __asm__ volatile ("st1 {v18.S}[0], [%0]\n\t"::"r"(&AB[0+3*8]));
+    __asm__ volatile ("st1 {v19.S}[1], [%0]\n\t"::"r"(&AB[1+3*8]));
+    __asm__ volatile ("st1 {v17.S}[2], [%0]\n\t"::"r"(&AB[2+3*8]));
+    __asm__ volatile ("st1 {v16.S}[3], [%0]\n\t"::"r"(&AB[3+3*8]));
+    __asm__ volatile ("st1 {v22.S}[0], [%0]\n\t"::"r"(&AB[4+3*8]));
+    __asm__ volatile ("st1 {v23.S}[1], [%0]\n\t"::"r"(&AB[5+3*8]));
+    __asm__ volatile ("st1 {v21.S}[2], [%0]\n\t"::"r"(&AB[6+3*8]));
+    __asm__ volatile ("st1 {v20.S}[3], [%0]\n\t"::"r"(&AB[7+3*8]));
 
     __asm__ volatile ("st1 {v24.S}[0], [%0]\n\t"::"r"(&AB[0+4*8]));
-    __asm__ volatile ("st1 {v24.S}[1], [%0]\n\t"::"r"(&AB[1+5*8]));
-    __asm__ volatile ("st1 {v24.S}[2], [%0]\n\t"::"r"(&AB[2+6*8]));
-    __asm__ volatile ("st1 {v24.S}[3], [%0]\n\t"::"r"(&AB[3+7*8]));
-
-    __asm__ volatile ("st1 {v25.S}[0], [%0]\n\t"::"r"(&AB[0+5*8]));
     __asm__ volatile ("st1 {v25.S}[1], [%0]\n\t"::"r"(&AB[1+4*8]));
-    __asm__ volatile ("st1 {v25.S}[2], [%0]\n\t"::"r"(&AB[2+7*8]));
-    __asm__ volatile ("st1 {v25.S}[3], [%0]\n\t"::"r"(&AB[3+6*8]));
-    
-    __asm__ volatile ("st1 {v26.S}[0], [%0]\n\t"::"r"(&AB[0+7*8]));
-    __asm__ volatile ("st1 {v26.S}[1], [%0]\n\t"::"r"(&AB[1+6*8]));
-    __asm__ volatile ("st1 {v26.S}[2], [%0]\n\t"::"r"(&AB[2+5*8]));
-    __asm__ volatile ("st1 {v26.S}[3], [%0]\n\t"::"r"(&AB[3+4*8]));
-
-    __asm__ volatile ("st1 {v27.S}[0], [%0]\n\t"::"r"(&AB[0+6*8]));
-    __asm__ volatile ("st1 {v27.S}[1], [%0]\n\t"::"r"(&AB[1+7*8]));
     __asm__ volatile ("st1 {v27.S}[2], [%0]\n\t"::"r"(&AB[2+4*8]));
-    __asm__ volatile ("st1 {v27.S}[3], [%0]\n\t"::"r"(&AB[3+5*8]));
-
-    // vst1q_lane_f32(&AB[0+4*8], ab2_00_11_22_33, 0);
-    // vst1q_lane_f32(&AB[1+5*8], ab2_00_11_22_33, 1);
-    // vst1q_lane_f32(&AB[2+6*8], ab2_00_11_22_33, 2);
-    // vst1q_lane_f32(&AB[3+7*8], ab2_00_11_22_33, 3);
-
-    // vst1q_lane_f32(&AB[0+5*8], ab2_01_10_23_32, 0);
-    // vst1q_lane_f32(&AB[1+4*8], ab2_01_10_23_32, 1);
-    // vst1q_lane_f32(&AB[2+7*8], ab2_01_10_23_32, 2);
-    // vst1q_lane_f32(&AB[3+6*8], ab2_01_10_23_32, 3);
-
-    // vst1q_lane_f32(&AB[0+7*8], ab2_03_12_21_30, 0);
-    // vst1q_lane_f32(&AB[1+6*8], ab2_03_12_21_30, 1);
-    // vst1q_lane_f32(&AB[2+5*8], ab2_03_12_21_30, 2);
-    // vst1q_lane_f32(&AB[3+4*8], ab2_03_12_21_30, 3);
-
-    // vst1q_lane_f32(&AB[0+6*8], ab2_02_13_20_31, 0);
-    // vst1q_lane_f32(&AB[1+7*8], ab2_02_13_20_31, 1);
-    // vst1q_lane_f32(&AB[2+4*8], ab2_02_13_20_31, 2);
-    // vst1q_lane_f32(&AB[3+5*8], ab2_02_13_20_31, 3);
-    
-    //
-    // Save ab3
-    //
-
+    __asm__ volatile ("st1 {v26.S}[3], [%0]\n\t"::"r"(&AB[3+4*8]));
     __asm__ volatile ("st1 {v28.S}[0], [%0]\n\t"::"r"(&AB[4+4*8]));
-    __asm__ volatile ("st1 {v28.S}[1], [%0]\n\t"::"r"(&AB[5+5*8]));
-    __asm__ volatile ("st1 {v28.S}[2], [%0]\n\t"::"r"(&AB[6+6*8]));
-    __asm__ volatile ("st1 {v28.S}[3], [%0]\n\t"::"r"(&AB[7+7*8]));
-
-    __asm__ volatile ("st1 {v29.S}[0], [%0]\n\t"::"r"(&AB[4+5*8]));
     __asm__ volatile ("st1 {v29.S}[1], [%0]\n\t"::"r"(&AB[5+4*8]));
-    __asm__ volatile ("st1 {v29.S}[2], [%0]\n\t"::"r"(&AB[6+7*8]));
-    __asm__ volatile ("st1 {v29.S}[3], [%0]\n\t"::"r"(&AB[7+6*8]));
-    
-    __asm__ volatile ("st1 {v30.S}[0], [%0]\n\t"::"r"(&AB[4+7*8]));
-    __asm__ volatile ("st1 {v30.S}[1], [%0]\n\t"::"r"(&AB[5+6*8]));
-    __asm__ volatile ("st1 {v30.S}[2], [%0]\n\t"::"r"(&AB[6+5*8]));
+    __asm__ volatile ("st1 {v31.S}[2], [%0]\n\t"::"r"(&AB[6+4*8]));
     __asm__ volatile ("st1 {v30.S}[3], [%0]\n\t"::"r"(&AB[7+4*8]));
 
-    __asm__ volatile ("st1 {v31.S}[0], [%0]\n\t"::"r"(&AB[4+6*8]));
-    __asm__ volatile ("st1 {v31.S}[1], [%0]\n\t"::"r"(&AB[5+7*8]));
-    __asm__ volatile ("st1 {v31.S}[2], [%0]\n\t"::"r"(&AB[6+4*8]));
+    __asm__ volatile ("st1 {v25.S}[0], [%0]\n\t"::"r"(&AB[0+5*8]));
+    __asm__ volatile ("st1 {v24.S}[1], [%0]\n\t"::"r"(&AB[1+5*8]));
+    __asm__ volatile ("st1 {v26.S}[2], [%0]\n\t"::"r"(&AB[2+5*8]));
+    __asm__ volatile ("st1 {v27.S}[3], [%0]\n\t"::"r"(&AB[3+5*8]));
+    __asm__ volatile ("st1 {v29.S}[0], [%0]\n\t"::"r"(&AB[4+5*8]));
+    __asm__ volatile ("st1 {v28.S}[1], [%0]\n\t"::"r"(&AB[5+5*8]));
+    __asm__ volatile ("st1 {v30.S}[2], [%0]\n\t"::"r"(&AB[6+5*8]));
     __asm__ volatile ("st1 {v31.S}[3], [%0]\n\t"::"r"(&AB[7+5*8]));
+    
+    __asm__ volatile ("st1 {v27.S}[0], [%0]\n\t"::"r"(&AB[0+6*8]));
+    __asm__ volatile ("st1 {v26.S}[1], [%0]\n\t"::"r"(&AB[1+6*8]));
+    __asm__ volatile ("st1 {v24.S}[2], [%0]\n\t"::"r"(&AB[2+6*8]));
+    __asm__ volatile ("st1 {v25.S}[3], [%0]\n\t"::"r"(&AB[3+6*8]));
+    __asm__ volatile ("st1 {v31.S}[0], [%0]\n\t"::"r"(&AB[4+6*8]));
+    __asm__ volatile ("st1 {v30.S}[1], [%0]\n\t"::"r"(&AB[5+6*8]));
+    __asm__ volatile ("st1 {v28.S}[2], [%0]\n\t"::"r"(&AB[6+6*8]));
+    __asm__ volatile ("st1 {v29.S}[3], [%0]\n\t"::"r"(&AB[7+6*8]));
 
-    // vst1q_lane_f32(&AB[4+4*8], ab3_00_11_22_33, 0);
-    // vst1q_lane_f32(&AB[5+5*8], ab3_00_11_22_33, 1);
-    // vst1q_lane_f32(&AB[6+6*8], ab3_00_11_22_33, 2);
-    // vst1q_lane_f32(&AB[7+7*8], ab3_00_11_22_33, 3);
-
-    // vst1q_lane_f32(&AB[4+5*8], ab3_01_10_23_32, 0);
-    // vst1q_lane_f32(&AB[5+4*8], ab3_01_10_23_32, 1);
-    // vst1q_lane_f32(&AB[6+7*8], ab3_01_10_23_32, 2);
-    // vst1q_lane_f32(&AB[7+6*8], ab3_01_10_23_32, 3);
-
-    // vst1q_lane_f32(&AB[4+7*8], ab3_03_12_21_30, 0);
-    // vst1q_lane_f32(&AB[5+6*8], ab3_03_12_21_30, 1);
-    // vst1q_lane_f32(&AB[6+5*8], ab3_03_12_21_30, 2);
-    // vst1q_lane_f32(&AB[7+4*8], ab3_03_12_21_30, 3);
-
-    // vst1q_lane_f32(&AB[4+6*8], ab3_02_13_20_31, 0);
-    // vst1q_lane_f32(&AB[5+7*8], ab3_02_13_20_31, 1);
-    // vst1q_lane_f32(&AB[6+4*8], ab3_02_13_20_31, 2);
-    // vst1q_lane_f32(&AB[7+5*8], ab3_02_13_20_31, 3);
-
+    __asm__ volatile ("st1 {v26.S}[0], [%0]\n\t"::"r"(&AB[0+7*8]));
+    __asm__ volatile ("st1 {v27.S}[1], [%0]\n\t"::"r"(&AB[1+7*8]));
+    __asm__ volatile ("st1 {v25.S}[2], [%0]\n\t"::"r"(&AB[2+7*8]));
+    __asm__ volatile ("st1 {v24.S}[3], [%0]\n\t"::"r"(&AB[3+7*8]));
+    __asm__ volatile ("st1 {v30.S}[0], [%0]\n\t"::"r"(&AB[4+7*8]));
+    __asm__ volatile ("st1 {v31.S}[1], [%0]\n\t"::"r"(&AB[5+7*8]));
+    __asm__ volatile ("st1 {v29.S}[2], [%0]\n\t"::"r"(&AB[6+7*8]));
+    __asm__ volatile ("st1 {v28.S}[3], [%0]\n\t"::"r"(&AB[7+7*8]));
 
 //
 //  Update C <- beta*C
 //
     if (beta==0.0) {
-        for (j=0; j<NR; ++j) {
-            for (i=0; i<MR; ++i) {
-                C[i*incRowC+j*incColC] = 0.0;
-            }
+        for (j=0; j<NR; j++) {
+            __asm__ volatile (
+                "dup v0.4S, wzr\n\t"
+                "dup v1.4S, wzr\n\t"
+                "st1 {v0.4S, v1.4S}, [%0]\n\t"
+                ::"r"(&C[j*incColC])
+            );
         }
     } else if (beta!=1.0) {
-        for (j=0; j<NR; ++j) {
-            for (i=0; i<MR; ++i) {
-                C[i*incRowC+j*incColC] *= beta;
-            }
+        for (j=0; j<NR; j++) {
+            __asm__ volatile (
+                "ld1 {v0.4S, v1.4S}, [%0]\n\t"
+                "dup v2.4S, %w1\n\t"
+                "fmul v0.4S, v0.4S, v2.4S\n\t"
+                "fmul v1.4S, v1.4S, v2.4S\n\t"
+                "st1 {v0.4S, v1.4S}, [%0]\n\t"
+                ::"r"(&C[j*incColC]), "r"(beta)
+            );
         }
     }
 
@@ -405,16 +412,29 @@ sgemm_micro_kernel(int kc,
 //                                  the above layer dgemm_nn)
 //
     if (alpha==1.0) {
-        for (j=0; j<NR; ++j) {
-            for (i=0; i<MR; ++i) {
-                C[i*incRowC+j*incColC] += AB[i+j*MR];
-            }
+        for (j=0; j<NR; j++) {
+            __asm__ volatile (
+                "ld1 {v0.4S, v1.4S}, [%0]\n\t"
+                "ld1 {v2.4S, v3.4S}, [%1]\n\t"
+                "add v0.4S, v0.4S, v2.4S\n\t"
+                "add v1.4S, v1.4S, v3.4S\n\t"
+                "st1 {v0.4S, v1.4S}, [%0]\n\t"
+                ::"r"(&C[j*incColC]), "r"(&AB[j*MR])
+            );
         }
     } else {
-        for (j=0; j<NR; ++j) {
-            for (i=0; i<MR; ++i) {
-                C[i*incRowC+j*incColC] += alpha*AB[i+j*MR];
-            }
+        for (j=0; j<NR; j++) {
+            __asm__ volatile (
+                "ld1 {v0.4S, v1.4S}, [%0]\n\t"
+                "ld1 {v2.4S, v3.4S}, [%1]\n\t"
+                "dup v4.4S, %w2\n\t"
+                "fmul v2.4S, v2.4S, v4.4S\n\t"
+                "fmul v3.4S, v3.4S, v4.4S\n\t"
+                "add v0.4S, v0.4S, v2.4S\n\t"
+                "add v1.4S, v1.4S, v3.4S\n\t"
+                "st1 {v0.4S, v1.4S}, [%0]\n\t"
+                ::"r"(&C[j*incColC]), "r"(&AB[j*MR]), "r"(alpha)
+            );
         }
     }
 }
@@ -435,6 +455,8 @@ sgemm_relu_micro_kernel(int kc,
     //
     //  Compute AB = A*B
     //
+
+    /*
 
     float32x4_t tmp0, tmp1, tmp2, tmp3;
     float32x4_t tmp4, tmp5, tmp6, tmp7;
@@ -633,6 +655,7 @@ sgemm_relu_micro_kernel(int kc,
             }
         }
     }
+    */
 }
 
 //

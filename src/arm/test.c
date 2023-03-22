@@ -18,15 +18,14 @@ float32_t C [8 * 8];
 
 int main() {
 
-    // for (int i=0; i<64; i++) {
-    //     A[i] = 1.0;
-    //     B[i] = 2.0;
+    // for (int i=0; i<d_ff*token_num; i++) {
+    //     hidden[i] = i;
     // }
 
     // sgemm_neon(8, 8, 8, 1.0, A, 1, 8, B, 1, 8, 0.0, C, 1, 8);
 
     // sgemm_relu_neon(d_ff, token_num, d_model, 1.0, W_ff1, 1, d_ff, ffn_buffer, 1, d_model, 0.0, hidden, 1, d_ff);
-    sgemm_neon(d_model, token_num, d_ff, 1.0, W_ff2, 1, d_model, hidden, 1, d_ff, 0.0, ffn_buffer + d_model * token_num, 1, d_model);
+    sgemm_neon(d_model, token_num, d_ff, 1.0, W_ff2, 1, d_model, hidden, 1, d_ff, 1.0, ffn_buffer + d_model * token_num, 1, d_model);
 
     return 0;
 }
