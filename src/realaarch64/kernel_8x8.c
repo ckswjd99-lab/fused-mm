@@ -61,7 +61,7 @@ void sgemm_kernel_8x8_naive(
     }
 }
 
-void sgemm_kernel_8x8_neon_fullyunroll(
+void sgemm_kernel_8x8_fullyunroll(
     int kc, float alpha, const float *A, const float *B, float beta, float *C, int incRowC, int incColC
 ) {
     /**
