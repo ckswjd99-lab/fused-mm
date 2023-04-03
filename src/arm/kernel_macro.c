@@ -18,6 +18,24 @@ void pack_MRxk(
     }
 }
 
+//
+//  Packing complete panels from A (i.e. without padding)
+//
+void pack_NRxk(
+    int k, 
+    const float *A, int incRowA, int incColA, float *buffer
+) {
+    int i, j;
+
+    for (j=0; j<k; ++j) {
+        for (i=0; i<NR; ++i) {
+            buffer[i] = A[i*incRowA];
+        }
+        buffer += NR;
+        A      += incColA;
+    }
+}
+
 
 //  Packing complete panels from A (i.e. without padding)
 //
@@ -45,23 +63,23 @@ void pack_rowwise(
     int mc, int kc, 
     const float *A, int incRowA, int incColA, float *buffer
 ) {
-    int mp  = mc / MR;
-    int _mr = mc % MR;
+    int mp  = mc / NR;
+    int _mr = mc % NR;
 
     int i, j;
 
     if (incRowA == 1) {
         for (i=0; i<mp; ++i) {
-            pack_MRxk_unroll(kc, A, incRowA, incColA, buffer);
-            buffer += kc*MR;
-            A      += MR*incRowA;
+            pack_NRxk(kc, A, incRowA, incColA, buffer);
+            buffer += kc*NR;
+            A      += NR*incRowA;
         }
     }
     else {
         for (i=0; i<mp; ++i) {
-            pack_MRxk(kc, A, incRowA, incColA, buffer);
-            buffer += kc*MR;
-            A      += MR*incRowA;
+            pack_NRxk(kc, A, incRowA, incColA, buffer);
+            buffer += kc*NR;
+            A      += NR*incRowA;
         }
     }
     if (_mr>0) {
@@ -69,10 +87,10 @@ void pack_rowwise(
             for (i=0; i<_mr; ++i) {
                 buffer[i] = A[i*incRowA];
             }
-            for (i=_mr; i<MR; ++i) {
+            for (i=_mr; i<NR; ++i) {
                 buffer[i] = 0.0;
             }
-            buffer += MR;
+            buffer += NR;
             A      += incColA;
         }
     }
@@ -92,6 +110,24 @@ void pack_kxNR(
             buffer[j] = B[j*incColB];
         }
         buffer += NR;
+        B      += incRowB;
+    }
+}
+
+//
+//  Packing complete panels from B (i.e. without padding)
+//
+void pack_kxMR(
+    int k, 
+    const float *B, int incRowB, int incColB, float *buffer
+) {
+    int i, j;
+
+    for (i=0; i<k; ++i) {
+        for (j=0; j<MR; ++j) {
+            buffer[j] = B[j*incColB];
+        }
+        buffer += MR;
         B      += incRowB;
     }
 }
@@ -166,23 +202,23 @@ void pack_colwise(
     int kc, int nc, 
     const float *B, int incRowB, int incColB, float *buffer
 ) {
-    int np  = nc / NR;
-    int _nr = nc % NR;
+    int np  = nc / MR;
+    int _nr = nc % MR;
 
     int i, j;
 
     if (incRowB == 1) {
         for (j=0; j<np; ++j) {
-            pack_kxNR(kc, B, incRowB, incColB, buffer);
-            buffer += kc*NR;
-            B      += NR*incColB;
+            pack_kxMR(kc, B, incRowB, incColB, buffer);
+            buffer += kc*MR;
+            B      += MR*incColB;
         }
     }
     else {
         for (j=0; j<np; ++j) {
-            pack_kxNR(kc, B, incRowB, incColB, buffer);
-            buffer += kc*NR;
-            B      += NR*incColB;
+            pack_kxMR(kc, B, incRowB, incColB, buffer);
+            buffer += kc*MR;
+            B      += MR*incColB;
         }
     }
     if (_nr>0) {
@@ -190,10 +226,10 @@ void pack_colwise(
             for (j=0; j<_nr; ++j) {
                 buffer[j] = B[j*incColB];
             }
-            for (j=_nr; j<NR; ++j) {
+            for (j=_nr; j<MR; ++j) {
                 buffer[j] = 0.0;
             }
-            buffer += NR;
+            buffer += MR;
             B      += incRowB;
         }
     }
@@ -219,13 +255,13 @@ sgeaxpy(int           m,
     if (alpha!=1.0) {
         for (j=0; j<n; ++j) {
             for (i=0; i<m; ++i) {
-                Y[i*incRowY+j*incColY] += alpha*X[i*incRowX+j*incColX];
+                Y[i*incColY+j*incRowY] += alpha*X[i*incColX+j*incRowX];
             }
         }
     } else {
         for (j=0; j<n; ++j) {
             for (i=0; i<m; ++i) {
-                Y[i*incRowY+j*incColY] += X[i*incRowX+j*incColX];
+                Y[i*incColY+j*incRowY] += X[i*incColX+j*incRowX];
             }
         }
     }
@@ -247,13 +283,13 @@ sgescal(int     m,
     if (alpha!=0.0) {
         for (j=0; j<n; ++j) {
             for (i=0; i<m; ++i) {
-                X[i*incRowX+j*incColX] *= alpha;
+                X[i*incColX+j*incRowX] *= alpha;
             }
         }
     } else {
         for (j=0; j<n; ++j) {
             for (i=0; i<m; ++i) {
-                X[i*incRowX+j*incColX] = 0.0;
+                X[i*incColX+j*incRowX] = 0.0;
             }
         }
     }
@@ -297,9 +333,9 @@ void sgemm_macro_kernel(
                                    0.0,
                                    _C, 1, MR);
                 sgescal(mr, nr, beta,
-                        &C[i*MR*incRowC+j*NR*incColC], incRowC, incColC);
+                        &C[i*MR*incColC+j*NR*incRowC], incRowC, incColC);
                 sgeaxpy(mr, nr, 1.0, _C, 1, MR,
-                        &C[i*MR*incRowC+j*NR*incColC], incRowC, incColC);
+                        &C[i*MR*incColC+j*NR*incRowC], incRowC, incColC);
             }
         }
     }

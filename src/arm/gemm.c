@@ -88,22 +88,23 @@ void sgemm_naive(
             kc    = (l!=kb-1 || _kc==0) ? KC   : _kc;
             _beta = (l==0) ? beta : 1.0;
 
-            pack_rowwise(kc, nc,
-                   &B[l*KC*incRowB+j*NC*incColB], incRowB, incColB,
-                   B_buffer);
+            pack_rowwise(
+                    nc, kc, 
+                    &B[l*KC*incColB+j*NC*incRowB], incRowB, incColB,
+                    B_buffer);
 
             for (i=0; i<mb; ++i) {
                 mc = (i!=mb-1 || _mc==0) ? MC : _mc;
 
                 pack_colwise(
-                    mc, kc,
-                    &A[i*MC*incRowA+l*KC*incColA], incRowA, incColA, A_buffer
+                    kc, mc,
+                    &A[i*MC*incColA+l*KC*incRowA], incRowA, incColA, A_buffer
                 );
 
                 sgemm_macro_kernel(
                     mc, nc, kc, 
                     alpha, A_buffer, B_buffer, 
-                    _beta, &C[i*MC*incRowC+j*NC*incColC], incRowC, incColC
+                    _beta, &C[i*MC*incColC+j*NC*incRowC], incRowC, incColC
                 );
             }
         }

@@ -20,8 +20,8 @@ void matrix_init_zero(float32_t *M, uint32_t numvals) {
 int matrix_comp(float32_t *A, float32_t *B, uint32_t rows, uint32_t cols) {
   float32_t a;
   float32_t b;
-  for (int i=0; i<rows; i++) {
-    for (int j=0; j<cols; j++) {
+  for (int j=0; j<cols; j++) {
+    for (int i=0; i<rows; i++) {
       a = A[rows*j + i];
       b = B[rows*j + i];
       if (f32comp_noteq(a, b)) {
