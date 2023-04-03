@@ -6,26 +6,26 @@
 #include "utils.h"
 
 #define token_num   256
-#define d_model     786
-#define d_ff        (786*4)
+#define d_model     768
+#define d_ff        (768*4)
 #define ffn_num     4
 
-#define M           945
-#define N           141
-#define K           153
+#define BENCH_M           256
+#define BENCH_N           (768*4)
+#define BENCH_K           768
 
 float32_t ffn_buffer    [d_model * token_num * (ffn_num+1)];
 float32_t W_ff1         [d_ff * d_model];
 float32_t hidden        [d_ff * token_num];
 float32_t W_ff2         [d_model * d_ff];
 
-float32_t A [K * M];
-float32_t B1 [N * K];
-float32_t B2 [N * K];
-float32_t C1 [M * N];
-float32_t C2 [M * N];
+float32_t A [BENCH_K * BENCH_M];
+float32_t B1 [BENCH_N * BENCH_K];
+float32_t B2 [BENCH_N * BENCH_K];
+float32_t C1 [BENCH_M * BENCH_N];
+float32_t C2 [BENCH_M * BENCH_N];
 
-float32_t A_buffer [KC * MC];
+float32_t A_buffer [KC * BENCH_M];
 float32_t B_buffer [NC * KC];
 
 int main() {
@@ -47,17 +47,17 @@ int main() {
     //     B1[i] = B2[i] = ((float)rand())/RAND_MAX*2-1;
     //     // B1[(i/K)+(i%K)*N] = B2[i] = ((float)rand())/RAND_MAX*2-1;
     // }
-    for (int i=0; i<N*M; i++) {
+    for (int i=0; i<BENCH_N*BENCH_M; i++) {
         C1[i] = 0;
         C2[i] = 0;
     }
-    for (int i=0; i<K*M; i++) {
+    for (int i=0; i<BENCH_K*BENCH_M; i++) {
         A[i] = ((float)rand())/RAND_MAX*2-1;
         // A[i] = i;
     }
-    for (int i=0; i<N*K; i++) {
+    for (int i=0; i<BENCH_N*BENCH_K; i++) {
         B1[i] = B2[i] = ((float)rand())/RAND_MAX*2-1;
-        // B1[i] = B2[i] = N*K-i;
+        // B1[i] = B2[i] = BENCH_N*BENCH_K-i;
         // B1[(i%8)*8+i/8] = B2[i] = i;
 
     }
@@ -66,8 +66,8 @@ int main() {
     // print_matrix(B2, K, N);
 
     // sgemm_kernel_8x8_neon_fullyunroll(K, 1.0, A, B1, 1.0, C1, 1, M);
-    sgemm_naive(M, N, K, 1.0, A, 1, K, A_buffer, B1, 1, N, B_buffer, 1.0, C1, 1, N);
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0, A, K, B2, N, 1.0, C2, N);
+    sgemm_neon_8x8(BENCH_M, BENCH_N, BENCH_K, 1.0, A, 1, BENCH_K, A_buffer, B1, 1, BENCH_N, B_buffer, 1.0, C1, 1, BENCH_N);
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, BENCH_M, BENCH_N, BENCH_K, 1.0, A, BENCH_K, B2, BENCH_N, 1.0, C2, BENCH_N);
 
     // print_matrix(C1, 8, 8);
 
@@ -75,7 +75,7 @@ int main() {
     // sgemm_neon(d_model, token_num, d_ff, 1.0, W_ff2, 1, d_model, hidden, 1, d_ff, 1.0, ffn_buffer + d_model * token_num, 1, d_model);
 
     
-    printf("same? %d\n", matrix_comp(C1, C2, N, M));
+    printf("same? %d\n", matrix_comp(C1, C2, BENCH_N, BENCH_M));
 
     return 0;
 }

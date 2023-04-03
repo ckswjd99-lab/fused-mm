@@ -12,7 +12,7 @@ void sgemm_micro_kernel_relu_naive(
     float beta, float *C, int incRowC, int incColC
 );
 
-void sgemm_kernel_8x8_neon_fullyunroll(
+void sgemm_micro_kernel_neon_8x8(
     int kc, 
     float alpha, const float *A, const float *B, 
     float beta, float *C, int incRowC, int incColC

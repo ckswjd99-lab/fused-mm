@@ -1,5 +1,6 @@
 #include "params.h"
 #include "kernel_macro.h"
+#include "assert.h"
 
 void sgemm_naive(
     int m, int n, int k, 
@@ -10,7 +11,7 @@ void sgemm_naive(
     float *C, int incRowC, int incColC
 );
 
-void sgemm_neon(
+void sgemm_neon_8x8(
     int m, int n, int k, 
     float alpha, 
     const float *A, int incRowA, int incColA, float *A_buffer, 

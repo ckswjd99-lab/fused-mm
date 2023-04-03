@@ -3,24 +3,6 @@
 //
 //  Packing complete panels from A (i.e. without padding)
 //
-void pack_MRxk(
-    int k, 
-    const float *A, int incRowA, int incColA, float *buffer
-) {
-    int i, j;
-
-    for (j=0; j<k; ++j) {
-        for (i=0; i<MR; ++i) {
-            buffer[i] = A[i*incRowA];
-        }
-        buffer += MR;
-        A      += incColA;
-    }
-}
-
-//
-//  Packing complete panels from A (i.e. without padding)
-//
 void pack_NRxk(
     int k, 
     const float *A, int incRowA, int incColA, float *buffer
@@ -36,24 +18,52 @@ void pack_NRxk(
     }
 }
 
-
+//
 //  Packing complete panels from A (i.e. without padding)
 //
-void pack_MRxk_unroll(
+void pack_NRxk_neon_8x8(
     int k, 
     const float *A, int incRowA, int incColA, float *buffer
 ) {
-    int i, j;
+    // Assume:
+    // k is multiple of 8
+    // incRowA is 1
+
+    int j;
 
     for (j=0; j<k; ++j) {
         __asm__ volatile (
-            "ld1 {v0.4S, v1.4S}, [%1]\n\t"
-            "st1 {v0.4S, v1.4S}, [%0]\n\t"
-            ::"r"(buffer), "r"(A), "r"(incColA)
+            "ld1 {v0.4S-v3.4S}, [%[A]], #64\n\t"
+            "ld1 {v4.4S-v7.4S}, [%[A]]\n\t"
+            "st1 {v0.4S-v3.4S}, [%[buffer]], #64\n\t"
+            "st1 {v4.4S-v7.4S}, [%[buffer]]\n\t"
+            ::[A]"r"(A), [buffer]"r"(buffer)
         );
-        buffer += 8;
-        A += incColA;
+
+        buffer += NR;
+        A      += incColA;
     }
+
+
+    // __asm__ volatile (
+    //     ".pack_NRxk_neon_8x8_LoopInit:\n\t"
+    //     "mov x0, #0\n"
+    //     ".pack_NRxk_neon_8x8_LoopCondition:\n\t"
+    //     "cmp x0, %[k]\n\t"
+    //     "bgt .pack_NRxk_neon_8x8_LoopEnd\n\t"
+    //     ".pack_NRxk_neon_8x8_LoopBody:\n\t"
+    //     "ld1 {v0.4S-v3.4S}, [%[A]], #64\n\t"
+    //     "ld1 {v4.4S-v7.4S}, [%[A]]\n\t"
+    //     "sub %[A], %[A], #64\n\t"
+    //     "add %[A], %[A], %[incColA]\n\t"
+    //     "st1 {v0.4S-v3.4S}, [%[buffer]], #64\n\t"
+    //     "st1 {v4.4S-v7.4S}, [%[buffer]], #64\n\t"
+    //     "add x0, x0, #1\n\t"
+    //     "b .pack_NRxk_neon_8x8_LoopCondition\n"
+    //     ".pack_NRxk_neon_8x8_LoopEnd:\n\t"
+    //     ::[k]"r"(k), [A]"r"(A), [incColA]"r"(incColA*4), [buffer]"r"(buffer)
+    //     :"x0"
+    // );
 }
 
 //
@@ -97,20 +107,24 @@ void pack_rowwise(
 }
 
 //
-//  Packing complete panels from B (i.e. without padding)
+//  Packing panels from A with padding if required
 //
-void pack_kxNR(
-    int k, 
-    const float *B, int incRowB, int incColB, float *buffer
+void pack_rowwise_neon_8x8(
+    int mc, int kc, 
+    const float *A, int incRowA, int incColA, float *buffer
 ) {
+    // Assume:
+    // mc, kc is multiples of 8
+    // incRowA is 1
+
+    int mp  = mc / NR;
+
     int i, j;
 
-    for (i=0; i<k; ++i) {
-        for (j=0; j<NR; ++j) {
-            buffer[j] = B[j*incColB];
-        }
-        buffer += NR;
-        B      += incRowB;
+    for (i=0; i<mp; ++i) {
+        pack_NRxk_neon_8x8(kc, A, incRowA, incColA, buffer);
+        buffer += kc*NR;
+        A      += NR;
     }
 }
 
@@ -127,6 +141,34 @@ void pack_kxMR(
         for (j=0; j<MR; ++j) {
             buffer[j] = B[j*incColB];
         }
+        buffer += MR;
+        B      += incRowB;
+    }
+}
+
+
+//
+//  Packing complete panels from B (i.e. without padding)
+//
+void pack_kxMR_neon_8x8(
+    int k, 
+    const float *B, int incRowB, int incColB, float *buffer
+) {
+    // Assume:
+    // size of B is multiple of 8
+    // incRowB is 1
+    int i, j;
+
+    for (i=0; i<k; ++i) {
+        buffer[0] = B[0*incColB];
+        buffer[1] = B[1*incColB];
+        buffer[2] = B[2*incColB];
+        buffer[3] = B[3*incColB];
+        buffer[4] = B[4*incColB];
+        buffer[5] = B[5*incColB];
+        buffer[6] = B[6*incColB];
+        buffer[7] = B[7*incColB];
+
         buffer += MR;
         B      += incRowB;
     }
@@ -198,6 +240,27 @@ void pack_kxNR_unroll(
 //
 //  Packing panels from B with padding if required
 //
+void pack_colwise_neon_8x8(
+    int kc, int nc, 
+    const float *B, int incRowB, int incColB, float *buffer
+) {
+    // Assume:
+    // mc, kc is multiples of 8
+    // incRowA is 1
+    int np  = nc / MR;
+
+    int i, j;
+
+    for (j=0; j<np; ++j) {
+        pack_kxMR_neon_8x8(kc, B, incRowB, incColB, buffer);
+        buffer += kc*MR;
+        B      += MR*incColB;
+    }
+}
+
+//
+//  Packing panels from B with padding if required
+//
 void pack_colwise(
     int kc, int nc, 
     const float *B, int incRowB, int incColB, float *buffer
@@ -238,8 +301,7 @@ void pack_colwise(
 //
 //  Compute Y += alpha*X
 //
-static void
-sgeaxpy(int           m,
+void sgeaxpy(int           m,
         int           n,
         float        alpha,
         const float  *X,
@@ -270,8 +332,7 @@ sgeaxpy(int           m,
 //
 //  Compute X *= alpha
 //
-static void
-sgescal(int     m,
+void sgescal(int     m,
         int     n,
         float  alpha,
         float  *X,
@@ -299,7 +360,7 @@ sgescal(int     m,
 //  Macro Kernel for the multiplication of blocks of A and B.  We assume that
 //  these blocks were previously packed to buffers _A and _B.
 //
-void sgemm_macro_kernel(
+void sgemm_macro_kernel_naive(
     int mc, int nc, int kc,
     float alpha,
     float *A_buffer, float *B_buffer,
@@ -344,13 +405,17 @@ void sgemm_macro_kernel(
 //
 //  Macro Kernel for the multiplication of blocks of A and B.  
 //
-void sgemm_macro_kernel_neon(
+void sgemm_macro_kernel_neon_8x8(
     int mc, int nc, int kc,
     float alpha,
     float *A_buffer, float *B_buffer,
     float beta,
     float *C, int incRowC, int incColC
 ) {
+    // Assume:
+    // mc, nc, kc is multiple of 8
+    // incRowC is 1
+
     float _C[MR*NR];
 
     int mp = (mc+MR-1) / MR;
@@ -369,18 +434,18 @@ void sgemm_macro_kernel_neon(
             mr    = (i!=mp-1 || _mr==0) ? MR : _mr;
 
             if (mr==MR && nr==NR) {
-                sgemm_micro_kernel_naive(kc, alpha, &A_buffer[i*kc*MR], &B_buffer[j*kc*NR],
+                sgemm_micro_kernel_neon_8x8(kc, alpha, &A_buffer[i*kc*MR], &B_buffer[j*kc*NR],
                                    beta,
-                                   &C[i*MR*incRowC+j*NR*incColC],
+                                   &C[i*MR*incColC+j*NR*incRowC],
                                    incRowC, incColC);
             } else {
-                sgemm_micro_kernel_naive(kc, alpha, &A_buffer[i*kc*MR], &B_buffer[j*kc*NR],
+                sgemm_micro_kernel_neon_8x8(kc, alpha, &A_buffer[i*kc*MR], &B_buffer[j*kc*NR],
                                    0.0,
                                    _C, 1, MR);
                 sgescal(mr, nr, beta,
-                        &C[i*MR*incRowC+j*NR*incColC], incRowC, incColC);
+                        &C[i*MR*incColC+j*NR*incRowC], incRowC, incColC);
                 sgeaxpy(mr, nr, 1.0, _C, 1, MR,
-                        &C[i*MR*incRowC+j*NR*incColC], incRowC, incColC);
+                        &C[i*MR*incColC+j*NR*incRowC], incRowC, incColC);
             }
         }
     }
