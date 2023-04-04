@@ -147,11 +147,11 @@ void sgemm_macro_kernel_neon_4x16(
     int mr, nr;
     int i, j;
 
-    for (j=0; j<np; ++j) {
-        nr    = (j!=np-1 || _nr==0) ? 16 : _nr;
+    for (i=0; i<mp; ++i) {
+        mr    = (i!=mp-1 || _mr==0) ? 4 : _mr;
 
-        for (i=0; i<mp; ++i) {
-            mr    = (i!=mp-1 || _mr==0) ? 4 : _mr;
+        for (j=0; j<np; ++j) {
+            nr    = (j!=np-1 || _nr==0) ? 16 : _nr;
 
             if (mr==4 && nr==16) {
                 sgemm_micro_kernel_neon_4x16(kc, alpha, &A_buffer[i*kc*4], &B_buffer[j*kc*16],

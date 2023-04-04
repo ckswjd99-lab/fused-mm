@@ -1,4 +1,4 @@
-#include "../params.h"
+#include "../../../params.h"
 #include "../kernel_micro/kernel_micro.h"
 #include <assert.h>
 

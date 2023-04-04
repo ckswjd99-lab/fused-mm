@@ -1,4 +1,4 @@
-#include "../params.h"
+#include "../../../params.h"
 
 void sgemm_micro_kernel_naive(
     int kc,

@@ -104,6 +104,8 @@ alpha_vec .req v10.4S
 	fmul v8.4S, v8.4S, v10.4S
 	fmul v9.4S, v9.4S, v10.4S
 
+
+	// KC = 1 ~ 2
 	fmla v16.4S, v0.4S, v8.4S[0]
 	fmla v17.4S, v1.4S, v8.4S[0]
 	fmla v18.4S, v2.4S, v8.4S[0]
@@ -112,6 +114,152 @@ alpha_vec .req v10.4S
 	fmla v21.4S, v1.4S, v8.4S[1]
 	fmla v22.4S, v2.4S, v8.4S[1]
 	fmla v23.4S, v3.4S, v8.4S[1]
+
+
+	fmla v24.4S, v0.4S, v8.4S[2]
+	fmla v25.4S, v1.4S, v8.4S[2]
+	fmla v26.4S, v2.4S, v8.4S[2]
+	fmla v27.4S, v3.4S, v8.4S[2]
+	fmla v28.4S, v0.4S, v8.4S[3]
+	fmla v29.4S, v1.4S, v8.4S[3]
+	fmla v30.4S, v2.4S, v8.4S[3]
+	fmla v31.4S, v3.4S, v8.4S[3]
+	
+	ld1 {v8.4S}, [tempA], #16
+
+	fmla v16.4S, v4.4S, v9.4S[0]
+	fmla v17.4S, v5.4S, v9.4S[0]
+	fmla v18.4S, v6.4S, v9.4S[0]
+	fmla v19.4S, v7.4S, v9.4S[0]
+	fmla v20.4S, v4.4S, v9.4S[1]
+	fmla v21.4S, v5.4S, v9.4S[1]
+	fmla v22.4S, v6.4S, v9.4S[1]
+	fmla v23.4S, v7.4S, v9.4S[1]
+
+	ld1 {v0.4S-v3.4S}, [tempB], #64
+
+	fmla v24.4S, v4.4S, v9.4S[2]
+	fmla v25.4S, v5.4S, v9.4S[2]
+	fmla v26.4S, v6.4S, v9.4S[2]
+	fmla v27.4S, v7.4S, v9.4S[2]
+	fmla v28.4S, v4.4S, v9.4S[3]
+	fmla v29.4S, v5.4S, v9.4S[3]
+	fmla v30.4S, v6.4S, v9.4S[3]
+	fmla v31.4S, v7.4S, v9.4S[3]
+	
+	ld1 {v9.4S}, [tempA], #16
+
+	fmul v8.4S, v8.4S, v10.4S
+
+	// KC = 2 ~ 3
+	fmla v16.4S, v0.4S, v8.4S[0]
+	fmla v17.4S, v1.4S, v8.4S[0]
+	fmla v18.4S, v2.4S, v8.4S[0]
+	fmla v19.4S, v3.4S, v8.4S[0]
+	fmla v20.4S, v0.4S, v8.4S[1]
+	fmla v21.4S, v1.4S, v8.4S[1]
+	fmla v22.4S, v2.4S, v8.4S[1]
+	fmla v23.4S, v3.4S, v8.4S[1]
+
+	ld1 {v4.4S-v7.4S}, [tempB], #64
+	fmul v9.4S, v9.4S, v10.4S
+
+	fmla v24.4S, v0.4S, v8.4S[2]
+	fmla v25.4S, v1.4S, v8.4S[2]
+	fmla v26.4S, v2.4S, v8.4S[2]
+	fmla v27.4S, v3.4S, v8.4S[2]
+	fmla v28.4S, v0.4S, v8.4S[3]
+	fmla v29.4S, v1.4S, v8.4S[3]
+	fmla v30.4S, v2.4S, v8.4S[3]
+	fmla v31.4S, v3.4S, v8.4S[3]
+
+	ld1 {v8.4S}, [tempA], #16
+
+	fmla v16.4S, v4.4S, v9.4S[0]
+	fmla v17.4S, v5.4S, v9.4S[0]
+	fmla v18.4S, v6.4S, v9.4S[0]
+	fmla v19.4S, v7.4S, v9.4S[0]
+	fmla v20.4S, v4.4S, v9.4S[1]
+	fmla v21.4S, v5.4S, v9.4S[1]
+	fmla v22.4S, v6.4S, v9.4S[1]
+	fmla v23.4S, v7.4S, v9.4S[1]
+
+	ld1 {v0.4S-v3.4S}, [tempB], #64
+
+	fmla v24.4S, v4.4S, v9.4S[2]
+	fmla v25.4S, v5.4S, v9.4S[2]
+	fmla v26.4S, v6.4S, v9.4S[2]
+	fmla v27.4S, v7.4S, v9.4S[2]
+	fmla v28.4S, v4.4S, v9.4S[3]
+	fmla v29.4S, v5.4S, v9.4S[3]
+	fmla v30.4S, v6.4S, v9.4S[3]
+	fmla v31.4S, v7.4S, v9.4S[3]
+	
+	ld1 {v9.4S}, [tempA], #16
+	
+	fmul v8.4S, v8.4S, v10.4S
+	
+	// KC = 4 ~ 5
+	fmla v16.4S, v0.4S, v8.4S[0]
+	fmla v17.4S, v1.4S, v8.4S[0]
+	fmla v18.4S, v2.4S, v8.4S[0]
+	fmla v19.4S, v3.4S, v8.4S[0]
+	fmla v20.4S, v0.4S, v8.4S[1]
+	fmla v21.4S, v1.4S, v8.4S[1]
+	fmla v22.4S, v2.4S, v8.4S[1]
+	fmla v23.4S, v3.4S, v8.4S[1]
+
+	ld1 {v4.4S-v7.4S}, [tempB], #64
+	fmul v9.4S, v9.4S, v10.4S
+
+	fmla v24.4S, v0.4S, v8.4S[2]
+	fmla v25.4S, v1.4S, v8.4S[2]
+	fmla v26.4S, v2.4S, v8.4S[2]
+	fmla v27.4S, v3.4S, v8.4S[2]
+	fmla v28.4S, v0.4S, v8.4S[3]
+	fmla v29.4S, v1.4S, v8.4S[3]
+	fmla v30.4S, v2.4S, v8.4S[3]
+	fmla v31.4S, v3.4S, v8.4S[3]
+
+	ld1 {v8.4S}, [tempA], #16
+
+	fmla v16.4S, v4.4S, v9.4S[0]
+	fmla v17.4S, v5.4S, v9.4S[0]
+	fmla v18.4S, v6.4S, v9.4S[0]
+	fmla v19.4S, v7.4S, v9.4S[0]
+	fmla v20.4S, v4.4S, v9.4S[1]
+	fmla v21.4S, v5.4S, v9.4S[1]
+	fmla v22.4S, v6.4S, v9.4S[1]
+	fmla v23.4S, v7.4S, v9.4S[1]
+	
+	ld1 {v0.4S-v3.4S}, [tempB], #64
+	fmul v8.4S, v8.4S, v10.4S
+
+	fmla v24.4S, v4.4S, v9.4S[2]
+	fmla v25.4S, v5.4S, v9.4S[2]
+	fmla v26.4S, v6.4S, v9.4S[2]
+	fmla v27.4S, v7.4S, v9.4S[2]
+	fmla v28.4S, v4.4S, v9.4S[3]
+	fmla v29.4S, v5.4S, v9.4S[3]
+	fmla v30.4S, v6.4S, v9.4S[3]
+	fmla v31.4S, v7.4S, v9.4S[3]
+	
+	ld1 {v9.4S}, [tempA], #16
+	
+
+	// KC = 6 ~ 7
+	fmla v16.4S, v0.4S, v8.4S[0]
+	fmla v17.4S, v1.4S, v8.4S[0]
+	fmla v18.4S, v2.4S, v8.4S[0]
+	fmla v19.4S, v3.4S, v8.4S[0]
+	fmla v20.4S, v0.4S, v8.4S[1]
+	fmla v21.4S, v1.4S, v8.4S[1]
+	fmla v22.4S, v2.4S, v8.4S[1]
+	fmla v23.4S, v3.4S, v8.4S[1]
+
+	ld1 {v4.4S-v7.4S}, [tempB], #64
+	fmul v9.4S, v9.4S, v10.4S
+
 	fmla v24.4S, v0.4S, v8.4S[2]
 	fmla v25.4S, v1.4S, v8.4S[2]
 	fmla v26.4S, v2.4S, v8.4S[2]
@@ -129,122 +277,7 @@ alpha_vec .req v10.4S
 	fmla v21.4S, v5.4S, v9.4S[1]
 	fmla v22.4S, v6.4S, v9.4S[1]
 	fmla v23.4S, v7.4S, v9.4S[1]
-	fmla v24.4S, v4.4S, v9.4S[2]
-	fmla v25.4S, v5.4S, v9.4S[2]
-	fmla v26.4S, v6.4S, v9.4S[2]
-	fmla v27.4S, v7.4S, v9.4S[2]
-	fmla v28.4S, v4.4S, v9.4S[3]
-	fmla v29.4S, v5.4S, v9.4S[3]
-	fmla v30.4S, v6.4S, v9.4S[3]
-	fmla v31.4S, v7.4S, v9.4S[3]
-	
-	ld1 {v8.4S-v9.4S}, [tempA], #32
-	ld1 {v0.4S-v3.4S}, [tempB], #64
-	ld1 {v4.4S-v7.4S}, [tempB], #64
-	fmul v8.4S, v8.4S, v10.4S
-	fmul v9.4S, v9.4S, v10.4S
-	fmla v16.4S, v0.4S, v8.4S[0]
-	fmla v17.4S, v1.4S, v8.4S[0]
-	fmla v18.4S, v2.4S, v8.4S[0]
-	fmla v19.4S, v3.4S, v8.4S[0]
-	fmla v20.4S, v0.4S, v8.4S[1]
-	fmla v21.4S, v1.4S, v8.4S[1]
-	fmla v22.4S, v2.4S, v8.4S[1]
-	fmla v23.4S, v3.4S, v8.4S[1]
-	fmla v24.4S, v0.4S, v8.4S[2]
-	fmla v25.4S, v1.4S, v8.4S[2]
-	fmla v26.4S, v2.4S, v8.4S[2]
-	fmla v27.4S, v3.4S, v8.4S[2]
-	fmla v28.4S, v0.4S, v8.4S[3]
-	fmla v29.4S, v1.4S, v8.4S[3]
-	fmla v30.4S, v2.4S, v8.4S[3]
-	fmla v31.4S, v3.4S, v8.4S[3]
-	fmla v16.4S, v4.4S, v9.4S[0]
-	fmla v17.4S, v5.4S, v9.4S[0]
-	fmla v18.4S, v6.4S, v9.4S[0]
-	fmla v19.4S, v7.4S, v9.4S[0]
-	fmla v20.4S, v4.4S, v9.4S[1]
-	fmla v21.4S, v5.4S, v9.4S[1]
-	fmla v22.4S, v6.4S, v9.4S[1]
-	fmla v23.4S, v7.4S, v9.4S[1]
-	fmla v24.4S, v4.4S, v9.4S[2]
-	fmla v25.4S, v5.4S, v9.4S[2]
-	fmla v26.4S, v6.4S, v9.4S[2]
-	fmla v27.4S, v7.4S, v9.4S[2]
-	fmla v28.4S, v4.4S, v9.4S[3]
-	fmla v29.4S, v5.4S, v9.4S[3]
-	fmla v30.4S, v6.4S, v9.4S[3]
-	fmla v31.4S, v7.4S, v9.4S[3]
-	
-	ld1 {v8.4S-v9.4S}, [tempA], #32
-	ld1 {v0.4S-v3.4S}, [tempB], #64
-	ld1 {v4.4S-v7.4S}, [tempB], #64
-	
-	fmul v8.4S, v8.4S, v10.4S
-	fmul v9.4S, v9.4S, v10.4S
-	fmla v16.4S, v0.4S, v8.4S[0]
-	fmla v17.4S, v1.4S, v8.4S[0]
-	fmla v18.4S, v2.4S, v8.4S[0]
-	fmla v19.4S, v3.4S, v8.4S[0]
-	fmla v20.4S, v0.4S, v8.4S[1]
-	fmla v21.4S, v1.4S, v8.4S[1]
-	fmla v22.4S, v2.4S, v8.4S[1]
-	fmla v23.4S, v3.4S, v8.4S[1]
-	fmla v24.4S, v0.4S, v8.4S[2]
-	fmla v25.4S, v1.4S, v8.4S[2]
-	fmla v26.4S, v2.4S, v8.4S[2]
-	fmla v27.4S, v3.4S, v8.4S[2]
-	fmla v28.4S, v0.4S, v8.4S[3]
-	fmla v29.4S, v1.4S, v8.4S[3]
-	fmla v30.4S, v2.4S, v8.4S[3]
-	fmla v31.4S, v3.4S, v8.4S[3]
-	fmla v16.4S, v4.4S, v9.4S[0]
-	fmla v17.4S, v5.4S, v9.4S[0]
-	fmla v18.4S, v6.4S, v9.4S[0]
-	fmla v19.4S, v7.4S, v9.4S[0]
-	fmla v20.4S, v4.4S, v9.4S[1]
-	fmla v21.4S, v5.4S, v9.4S[1]
-	fmla v22.4S, v6.4S, v9.4S[1]
-	fmla v23.4S, v7.4S, v9.4S[1]
-	fmla v24.4S, v4.4S, v9.4S[2]
-	fmla v25.4S, v5.4S, v9.4S[2]
-	fmla v26.4S, v6.4S, v9.4S[2]
-	fmla v27.4S, v7.4S, v9.4S[2]
-	fmla v28.4S, v4.4S, v9.4S[3]
-	fmla v29.4S, v5.4S, v9.4S[3]
-	fmla v30.4S, v6.4S, v9.4S[3]
-	fmla v31.4S, v7.4S, v9.4S[3]
-	
-	ld1 {v8.4S-v9.4S}, [tempA], #32
-	ld1 {v0.4S-v3.4S}, [tempB], #64
-	ld1 {v4.4S-v7.4S}, [tempB], #64
-	
-	fmul v8.4S, v8.4S, v10.4S
-	fmul v9.4S, v9.4S, v10.4S
-	fmla v16.4S, v0.4S, v8.4S[0]
-	fmla v17.4S, v1.4S, v8.4S[0]
-	fmla v18.4S, v2.4S, v8.4S[0]
-	fmla v19.4S, v3.4S, v8.4S[0]
-	fmla v20.4S, v0.4S, v8.4S[1]
-	fmla v21.4S, v1.4S, v8.4S[1]
-	fmla v22.4S, v2.4S, v8.4S[1]
-	fmla v23.4S, v3.4S, v8.4S[1]
-	fmla v24.4S, v0.4S, v8.4S[2]
-	fmla v25.4S, v1.4S, v8.4S[2]
-	fmla v26.4S, v2.4S, v8.4S[2]
-	fmla v27.4S, v3.4S, v8.4S[2]
-	fmla v28.4S, v0.4S, v8.4S[3]
-	fmla v29.4S, v1.4S, v8.4S[3]
-	fmla v30.4S, v2.4S, v8.4S[3]
-	fmla v31.4S, v3.4S, v8.4S[3]
-	fmla v16.4S, v4.4S, v9.4S[0]
-	fmla v17.4S, v5.4S, v9.4S[0]
-	fmla v18.4S, v6.4S, v9.4S[0]
-	fmla v19.4S, v7.4S, v9.4S[0]
-	fmla v20.4S, v4.4S, v9.4S[1]
-	fmla v21.4S, v5.4S, v9.4S[1]
-	fmla v22.4S, v6.4S, v9.4S[1]
-	fmla v23.4S, v7.4S, v9.4S[1]
+
 	fmla v24.4S, v4.4S, v9.4S[2]
 	fmla v25.4S, v5.4S, v9.4S[2]
 	fmla v26.4S, v6.4S, v9.4S[2]
