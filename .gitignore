@@ -52,3 +52,6 @@ Mkfile.old
 dkms.conf
 
 *.out.*
+perf.*
+cachegrind_*.txt
+callgrind_*.txt
