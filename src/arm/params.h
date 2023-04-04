@@ -1,7 +1,7 @@
 #define MMC 16
-#define MC  128
+#define MC  64
 #define KC  128
-#define NC  840
+#define NC  512
 // #define MC  (12*8)
 // #define KC  352
 // #define NC  128

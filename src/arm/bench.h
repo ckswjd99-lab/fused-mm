@@ -1,5 +1,5 @@
 #include "params.h"
-#include "gemm.h"
+#include "gemm/gemm.h"
 #include "utils.h"
 
 #define BENCH_M           256
@@ -10,5 +10,5 @@ float A [BENCH_K * BENCH_M];
 float B1 [BENCH_N * BENCH_K];
 float C1 [BENCH_M * BENCH_N];
 
-float A_buffer [KC * MC];
-float B_buffer [NC * KC];
+float32_t A_buffer [KC * BENCH_M];
+float32_t B_buffer [NC * KC];

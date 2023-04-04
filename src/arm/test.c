@@ -2,7 +2,7 @@
 #include <time.h>
 #include <cblas.h>
 #include "params.h"
-#include "gemm.h"
+#include "gemm/gemm.h"
 #include "utils.h"
 
 #define token_num   256
@@ -10,6 +10,9 @@
 #define d_ff        (768*4)
 #define ffn_num     4
 
+// #define BENCH_M           32
+// #define BENCH_N           64
+// #define BENCH_K           16
 #define BENCH_M           256
 #define BENCH_N           (768*4)
 #define BENCH_K           768
@@ -66,7 +69,7 @@ int main() {
     // print_matrix(B2, K, N);
 
     // sgemm_kernel_8x8_neon_fullyunroll(K, 1.0, A, B1, 1.0, C1, 1, M);
-    sgemm_neon_8x8(BENCH_M, BENCH_N, BENCH_K, 1.0, A, 1, BENCH_K, A_buffer, B1, 1, BENCH_N, B_buffer, 1.0, C1, 1, BENCH_N);
+    sgemm_neon_4x16(BENCH_M, BENCH_N, BENCH_K, 1.0, A, 1, BENCH_K, A_buffer, B1, 1, BENCH_N, B_buffer, 1.0, C1, 1, BENCH_N);
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, BENCH_M, BENCH_N, BENCH_K, 1.0, A, BENCH_K, B2, BENCH_N, 1.0, C2, BENCH_N);
 
     // print_matrix(C1, 8, 8);
