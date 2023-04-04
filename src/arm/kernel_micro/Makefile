@@ -10,7 +10,7 @@ kernel_micro_neon_8x8.o:
 	gcc -g -c kernel_micro_neon_8x8.c
 
 kernel_micro_neon_4x16.o:
-	gcc -g -c kernel_micro_neon_4x16.c
+	gcc -g -c kernel_micro_neon_4x16.s
 
 clean:
 	rm *.o *.a
