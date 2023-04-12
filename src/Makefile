@@ -8,4 +8,5 @@ all:
 	make -C ${TARGET_DIR}
 
 clean:
+	-make -C bench ${@F}
 	-make -C ${TARGET_DIR} ${@F}

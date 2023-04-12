@@ -29,3 +29,11 @@ void sgemm_neon_4x16(
     float *C, int incRowC, int incColC
 );
 
+void sfumm_neon_4x16_relu(
+    int m, int n1, int n2, int k,
+    float alpha1, float alpha2,
+    const float *A, int incRowA, int incColA, float *A_buffer,
+    const float *B1, int incRowB1, int incColB1, float *B1_buffer,
+    float beta,
+    float *C, int incRowC, int incColC
+);

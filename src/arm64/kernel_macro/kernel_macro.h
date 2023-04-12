@@ -98,3 +98,11 @@ void sgemm_macro_kernel_neon_4x16(
     float beta,
     float *C, int incRowC, int incColC
 );
+
+void sfumm_macro_kernel_neon_4x16(
+    int mc, int nc1, int n2, int k,
+    float alpha1, float alpha2,
+    float *A_buffer, float *B1_buffer, float *B2_buffer,
+    float beta,
+    float *C, int incRowC, int incColC, float *C_buffer
+);

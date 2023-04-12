@@ -1,4 +1,4 @@
-CC = gcc
+CC = gcc -g
 
 all: kernel_macro_util.o kernel_macro_naive.o kernel_macro_neon_8x8.o kernel_macro_neon_4x16.o
 	ld -r -o kernel_macro.o kernel_macro_util.o kernel_macro_naive.o kernel_macro_neon_8x8.o kernel_macro_neon_4x16.o

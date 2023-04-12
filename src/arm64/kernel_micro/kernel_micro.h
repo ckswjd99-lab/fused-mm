@@ -23,3 +23,9 @@ void sgemm_micro_kernel_neon_4x16(
     float alpha, const float *A, const float *B, 
     float beta, float *C, int incRowC, int incColC
 );
+
+void sgemm_micro_kernel_neon_4x16_pack_colwise(
+    int kc, 
+    float alpha, const float *A, const float *B, 
+    float beta, float *C, int incRowC, int incColC
+);

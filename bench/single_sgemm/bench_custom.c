@@ -1,5 +1,8 @@
 #include "bench.h"
 
+float A_buffer [KC * MC];
+float B_buffer [NC * KC];
+
 extern void sgemm_neon_4x16(
     int m, int n, int k, 
     float alpha, 

@@ -1,7 +1,7 @@
 
 
 all: kernel_micro/kernel_micro.o kernel_macro/kernel_macro.o gemm/gemm.o utils.o
-	ar cr ../../custom_blas.a gemm/gemm.o kernel_macro/kernel_macro.o kernel_micro/kernel_micro.o utils.o
+	ar cr ../../custom_blas.a utils.o kernel_micro/kernel_micro.o kernel_macro/kernel_macro.o gemm/gemm.o
 
 kernel_micro/kernel_micro.o:
 	make -C kernel_micro
