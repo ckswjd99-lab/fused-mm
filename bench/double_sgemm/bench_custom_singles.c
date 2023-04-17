@@ -8,13 +8,13 @@
 
 float A [BENCH_K * BENCH_M];
 float B1 [BENCH_N1 * BENCH_K];
-float C1 [BENCH_M * BENCH_N2];
+float C1 [BENCH_M * BENCH_N1];
 float B2 [BENCH_N2 * BENCH_N1];
 float C2 [BENCH_M * BENCH_N2];
 
-float A_buffer [BENCH_K * FUMM_MC];
+float A_buffer [BENCH_K * MC];
 float B1_buffer [NC * BENCH_K];
-float C1_buffer [BENCH_N1 * FUMM_MC];
+float C1_buffer [BENCH_N1 * MC];
 float B2_buffer [NC * BENCH_K];
 
 extern void sgemm_neon_4x16(

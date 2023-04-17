@@ -150,6 +150,107 @@ void pack_colwise_neon_4x16(
 }
 
 //
+//  Pack B2
+//
+void pack_kfumm_B2_neon_4x16(
+    int nc1, int n2,
+    const float *B, int incRowB, int incColB, float *buffer
+) {
+    int i, j;
+
+    for (i=0; i<nc1/16; i++) {
+        for (j=0; j<n2/4; j++) {
+            buffer[0 + 0*4] = B[0 + 0*incColB];
+            buffer[1 + 0*4] = B[1 + 0*incColB];
+            buffer[2 + 0*4] = B[2 + 0*incColB];
+            buffer[3 + 0*4] = B[3 + 0*incColB];
+
+            buffer[0 + 1*4] = B[0 + 1*incColB];
+            buffer[1 + 1*4] = B[1 + 1*incColB];
+            buffer[2 + 1*4] = B[2 + 1*incColB];
+            buffer[3 + 1*4] = B[3 + 1*incColB];
+
+            buffer[0 + 2*4] = B[0 + 2*incColB];
+            buffer[1 + 2*4] = B[1 + 2*incColB];
+            buffer[2 + 2*4] = B[2 + 2*incColB];
+            buffer[3 + 2*4] = B[3 + 2*incColB];
+
+            buffer[0 + 3*4] = B[0 + 3*incColB];
+            buffer[1 + 3*4] = B[1 + 3*incColB];
+            buffer[2 + 3*4] = B[2 + 3*incColB];
+            buffer[3 + 3*4] = B[3 + 3*incColB];
+
+            buffer[0 + 4*4] = B[0 + 4*incColB];
+            buffer[1 + 4*4] = B[1 + 4*incColB];
+            buffer[2 + 4*4] = B[2 + 4*incColB];
+            buffer[3 + 4*4] = B[3 + 4*incColB];
+
+            buffer[0 + 5*4] = B[0 + 5*incColB];
+            buffer[1 + 5*4] = B[1 + 5*incColB];
+            buffer[2 + 5*4] = B[2 + 5*incColB];
+            buffer[3 + 5*4] = B[3 + 5*incColB];
+
+            buffer[0 + 6*4] = B[0 + 6*incColB];
+            buffer[1 + 6*4] = B[1 + 6*incColB];
+            buffer[2 + 6*4] = B[2 + 6*incColB];
+            buffer[3 + 6*4] = B[3 + 6*incColB];
+
+            buffer[0 + 7*4] = B[0 + 7*incColB];
+            buffer[1 + 7*4] = B[1 + 7*incColB];
+            buffer[2 + 7*4] = B[2 + 7*incColB];
+            buffer[3 + 7*4] = B[3 + 7*incColB];
+
+            buffer[0 + 8*4] = B[0 + 8*incColB];
+            buffer[1 + 8*4] = B[1 + 8*incColB];
+            buffer[2 + 8*4] = B[2 + 8*incColB];
+            buffer[3 + 8*4] = B[3 + 8*incColB];
+
+            buffer[0 + 9*4] = B[0 + 9*incColB];
+            buffer[1 + 9*4] = B[1 + 9*incColB];
+            buffer[2 + 9*4] = B[2 + 9*incColB];
+            buffer[3 + 9*4] = B[3 + 9*incColB];
+
+            buffer[0 + 10*4] = B[0 + 10*incColB];
+            buffer[1 + 10*4] = B[1 + 10*incColB];
+            buffer[2 + 10*4] = B[2 + 10*incColB];
+            buffer[3 + 10*4] = B[3 + 10*incColB];
+
+            buffer[0 + 11*4] = B[0 + 11*incColB];
+            buffer[1 + 11*4] = B[1 + 11*incColB];
+            buffer[2 + 11*4] = B[2 + 11*incColB];
+            buffer[3 + 11*4] = B[3 + 11*incColB];
+
+            buffer[0 + 12*4] = B[0 + 12*incColB];
+            buffer[1 + 12*4] = B[1 + 12*incColB];
+            buffer[2 + 12*4] = B[2 + 12*incColB];
+            buffer[3 + 12*4] = B[3 + 12*incColB];
+
+            buffer[0 + 13*4] = B[0 + 13*incColB];
+            buffer[1 + 13*4] = B[1 + 13*incColB];
+            buffer[2 + 13*4] = B[2 + 13*incColB];
+            buffer[3 + 13*4] = B[3 + 13*incColB];
+
+            buffer[0 + 14*4] = B[0 + 14*incColB];
+            buffer[1 + 14*4] = B[1 + 14*incColB];
+            buffer[2 + 14*4] = B[2 + 14*incColB];
+            buffer[3 + 14*4] = B[3 + 14*incColB];
+
+            buffer[0 + 15*4] = B[0 + 15*incColB];
+            buffer[1 + 15*4] = B[1 + 15*incColB];
+            buffer[2 + 15*4] = B[2 + 15*incColB];
+            buffer[3 + 15*4] = B[3 + 15*incColB];
+
+
+            buffer += 64;
+            B += 4;
+        }
+
+
+        B += 16 * incColB;
+    }
+}
+
+//
 //  Macro Kernel for the multiplication of blocks of A and B.  
 //
 void sgemm_macro_kernel_neon_4x16(
@@ -256,6 +357,10 @@ void sfumm_macro_kernel_neon_4x16(
             );
         }
     }
+    
+    for (j=0; j<FUMM_MC*FUMM_NC1; j++) {
+        C_buffer[j];
+    }
 
     for (i=0; i<mp; ++i) {
         for (j=0; j<np2; ++j) {
@@ -271,4 +376,44 @@ void sfumm_macro_kernel_neon_4x16(
     }
 
 
+}
+
+void skfumm_macro_kernel_neon_4x16(
+    int mc, int nc1, int n2, int k,
+    float alpha1, float alpha2,
+    float *A_buffer, float *B1_buffer, float *B2_buffer,
+    float beta,
+    float *C, int incRowC, int incColC, float *C_buffer
+) {
+    // Assume:
+    // mc is multiple of 16
+    // nc1 is multiple of 16
+    // nc2 is multiple of 16
+    // kc is multiple of 8
+    // incRowC is 1
+    // C_buffer is size of [FUMM_NC1, FUMM_MC]
+
+    assert(mc % 16 == 0);
+    assert(nc1 % 16 == 0);
+    assert(n2 % 16 == 0);
+    assert(k % 8 == 0);
+    assert(incRowC == 1);
+
+    int mp = mc / 4;
+    int np1 = nc1 / 16;
+
+    int mr, nr;
+    int i, j, l;
+
+    for (i=0; i<mp; ++i) {
+        for (j=0; j<np1; ++j) {
+            sfumm_micro_kernel_neon_4x16(
+                k, n2,
+                alpha1,
+                &A_buffer[i*k*4], &B1_buffer[j*k*16], &B2_buffer[j*n2*16],
+                1.0,
+                &C[i*incColC*4], 1, incColC
+            );
+        }
+    }
 }

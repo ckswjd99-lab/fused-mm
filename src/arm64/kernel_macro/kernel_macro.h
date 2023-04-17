@@ -62,6 +62,11 @@ void pack_colwise_neon_4x16(
     const float *A, int incRowA, int incColA, float *buffer
 );
 
+void pack_kfumm_B2_neon_4x16(
+    int nc1, int n2,
+    const float *B, int incRowB, int incColB, float *buffer
+);
+
 void sgeaxpy(
     int m, int n,
     float alpha,
@@ -100,6 +105,14 @@ void sgemm_macro_kernel_neon_4x16(
 );
 
 void sfumm_macro_kernel_neon_4x16(
+    int mc, int nc1, int n2, int k,
+    float alpha1, float alpha2,
+    float *A_buffer, float *B1_buffer, float *B2_buffer,
+    float beta,
+    float *C, int incRowC, int incColC, float *C_buffer
+);
+
+void skfumm_macro_kernel_neon_4x16(
     int mc, int nc1, int n2, int k,
     float alpha1, float alpha2,
     float *A_buffer, float *B1_buffer, float *B2_buffer,

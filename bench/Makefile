@@ -35,12 +35,16 @@ double_sgemm:
 	@echo "BENCH CUSTOM FUMM"
 	@time ./bench_custom_fumm.out
 	@perf stat ./bench_custom_fumm.out
-	@valgrind --tool=callgrind --I1=49152,3,64 --D1=32768,2,64 --LL=1048576,16,64 ./bench_custom_fumm.out
+	@valgrind --tool=callgrind --I1=49152,3,64 --D1=32768,2,64 --LL=1048576,16,64 ./bench_custom_fumm.out 2> temp.txt
+	-cat temp.txt
+	-FUMM_PNUM=$(shell cat ./temp.txt | grep -Po "[0-9.]{6}" | head -1);\
+	-callgrind_annotate ./callgrind.out.$$FUMM_PNUM > cgout_$$FUMM_PNUM.txt;
 	@echo "BENCH OPENBLAS"
 	@time ./bench_openblas.out
 	@perf stat ./bench_openblas.out
 	@valgrind --tool=callgrind --I1=49152,3,64 --D1=32768,2,64 --LL=1048576,16,64 ./bench_openblas.out
 	@perf record -e cpu-clock ./bench_custom_fumm.out
+	@-rm temp.txt
 
 clean:
-	rm *.out *.out.* perf.*
+	rm *.out *.out.* perf.* cgout_* temp.txt

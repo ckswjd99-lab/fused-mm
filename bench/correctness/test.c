@@ -3,9 +3,9 @@
 #include <cblas.h>
 #include "../../params.h"
 
-#define BENCH_M           256
-#define BENCH_N           (768*4)
-#define BENCH_K           768
+#define BENCH_M           1024
+#define BENCH_N           (128*4)
+#define BENCH_K           128
 
 float A [BENCH_K * BENCH_M];
 float B [BENCH_N * BENCH_K];

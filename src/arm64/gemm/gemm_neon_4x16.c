@@ -44,13 +44,13 @@ void sgemm_neon_4x16(
     }
 
 
-
     for (j=0; j<nb; ++j) {
         nc = (j!=nb-1 || _nc==0) ? NC : _nc;
 
         for (l=0; l<kb; ++l) {
             kc    = (l!=kb-1 || _kc==0) ? KC   : _kc;
             _beta = (l==0) ? beta : 1.0;
+
 
             pack_rowwise_neon_4x16(
                     kc, nc, 
@@ -63,7 +63,7 @@ void sgemm_neon_4x16(
                 // if (j==0) {
                     pack_colwise_neon_4x16(
                         mc, kc, 
-                        &A[i*MC*incColA+l*KC*incRowA], incRowA, incColA, A_buffer/*&A_buffer[i*MMC*KC]*/
+                        &A[i*MC*incColA+l*KC*incRowA], incRowA, incColA, A_buffer/*&A_buffer[i*MC*KC]*/
                     );
                 // }
 
