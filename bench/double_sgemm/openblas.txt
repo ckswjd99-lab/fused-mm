@@ -1,0 +1,25 @@
+==631731== Callgrind, a call-graph generating cache profiler
+==631731== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==631731== Using Valgrind-3.16.1 and LibVEX; rerun with -h for copyright info
+==631731== Command: ./bench_openblas.out
+==631731== 
+==631731== For interactive control, run 'callgrind_control -h'.
+==631731== 
+==631731== Events    : Ir Dr Dw I1mr D1mr D1mw ILmr DLmr DLmw
+==631731== Collected : 156915168 59902106 4039720 890 7440733 103239 885 347043 55417
+==631731== 
+==631731== I   refs:      156,915,168
+==631731== I1  misses:            890
+==631731== LLi misses:            885
+==631731== I1  miss rate:        0.00%
+==631731== LLi miss rate:        0.00%
+==631731== 
+==631731== D   refs:       63,941,826  (59,902,106 rd + 4,039,720 wr)
+==631731== D1  misses:      7,543,972  ( 7,440,733 rd +   103,239 wr)
+==631731== LLd misses:        402,460  (   347,043 rd +    55,417 wr)
+==631731== D1  miss rate:        11.8% (      12.4%   +       2.6%  )
+==631731== LLd miss rate:         0.6% (       0.6%   +       1.4%  )
+==631731== 
+==631731== LL refs:         7,544,862  ( 7,441,623 rd +   103,239 wr)
+==631731== LL misses:         403,345  (   347,928 rd +    55,417 wr)
+==631731== LL miss rate:          0.2% (       0.2%   +       1.4%  )
