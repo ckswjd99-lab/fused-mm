@@ -46,11 +46,14 @@ void sfumm_neon_4x16(
         for (i=0; i<mb; ++i) {
             mc = (i!=mb-1 || _mc==0) ? FUMM_MC : _mc;
 
-            if (j==0)
+            if (j == 0) {
                 pack_colwise_neon_4x16(
                     mc, k, 
                     &A[i*FUMM_MC*incColA], incRowA, incColA, &A_buffer[i*FUMM_MC*k]
                 );
+
+            }
+
 
             sfumm_macro_kernel_neon_4x16(
                 mc, nc1, n2, k,
